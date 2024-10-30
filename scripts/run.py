@@ -18,7 +18,22 @@ end_cell = np.array([[4,5]])
 rewards[4, 0] = -1
 rewards[4, 5] = 1
 
-grid_world = GridWorld(num_worlds, start_cell, end_cell, rewards, walls, enable_gpu_sim, 0)
+
+
+# Creating array of player positions
+num_players = 10
+players = []
+
+points = []
+
+for i in range(num_players):
+    # x = np.random.uniform(0, 94)
+    # y = np.random.uniform(0, 50)
+    points.append([i * 5, i * 5])
+
+
+# Create simulator object (need to rename)
+grid_world = GridWorld(points, num_worlds, start_cell, end_cell, rewards, walls, enable_gpu_sim, 0)
 #grid_world.vis_world()
 
 print(grid_world.observations.shape)
@@ -41,4 +56,6 @@ for i in range(5):
     print(grid_world.rewards)
     print("Dones:   ")
     print(grid_world.dones)
+    print("positions: ")
+    print(grid_world.player_pos)
     print()

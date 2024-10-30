@@ -10,6 +10,7 @@ enum class ExportID : uint32_t {
     GridPos,
     Reward,
     Done,
+    PlayerPos, // Added a player position archetype for sim
     NumExports,
 };
 
@@ -30,6 +31,12 @@ struct GridPos {
     int32_t x;
 };
 
+// new court position component
+struct CourtPos {
+    float x;
+    float y;
+};
+
 struct Reward {
     float r;
 };
@@ -48,6 +55,13 @@ struct Agent : public madrona::Archetype<
     GridPos,
     Reward,
     Done,
+    CurStep
+> {};
+
+// new basketball player agent component
+struct PlayerAgent : public madrona::Archetype<
+    Action,
+    CourtPos,
     CurStep
 > {};
 

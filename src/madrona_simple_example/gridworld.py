@@ -5,6 +5,7 @@ __all__ = ['GridWorld']
 
 class GridWorld:
     def __init__(self,
+                 initial_player_pos, # initial player positions
                  num_worlds,
                  start_cell,
                  end_cells,
@@ -18,16 +19,19 @@ class GridWorld:
         self.end_cells = end_cells
         self.rewards_input = rewards
         self.walls = walls
+        self.court_size = np.array([94.0, 50.0]) # added court size, however it is not passed into madrona yet, TBD on use
 
         self.sim = SimpleGridworldSimulator(
                 walls = np.array(walls).astype(np.bool_),
                 rewards = np.array(rewards).astype(np.float32),
                 end_cells = np.array(end_cells).astype(np.int32),
+                init_player_pos = np.array(initial_player_pos).astype(np.float32), # give madrona initial positions
                 start_x = start_cell[1],
                 start_y = start_cell[0],
                 max_episode_length = 0, # No max
                 exec_mode = madrona.ExecMode.CUDA if gpu_sim else madrona.ExecMode.CPU,
-                num_worlds = num_worlds,
+                num_worlds = num_worlds, 
+                num_players = len(initial_player_pos), #give madrona number of players with initial positions
                 gpu_id = 0,
             )
 
@@ -36,6 +40,7 @@ class GridWorld:
         self.observations = self.sim.observation_tensor().to_torch()
         self.rewards = self.sim.reward_tensor().to_torch()
         self.dones = self.sim.done_tensor().to_torch()
+        self.player_pos = self.sim.player_tensor().to_torch() #new player position tensor
 
     def step(self):
         self.sim.step()

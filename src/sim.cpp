@@ -16,13 +16,16 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &)
     registry.registerComponent<Reward>();
     registry.registerComponent<Done>();
     registry.registerComponent<CurStep>();
+    registry.registerComponent<CourtPos>();
 
     registry.registerArchetype<Agent>();
+    registry.registerComponent<PlayerAgent>();
 
     // Export tensors for pytorch
     registry.exportColumn<Agent, Reset>((uint32_t)ExportID::Reset);
     registry.exportColumn<Agent, Action>((uint32_t)ExportID::Action);
     registry.exportColumn<Agent, GridPos>((uint32_t)ExportID::GridPos);
+    registry.exportColumn<Agent, CourtPos>((uint32_t)ExportID::PlayerPos);
     registry.exportColumn<Agent, Reward>((uint32_t)ExportID::Reward);
     registry.exportColumn<Agent, Done>((uint32_t)ExportID::Done);
 }
@@ -36,6 +39,11 @@ inline void tick(Engine &ctx,
                  CurStep &episode_step)
 {
     const GridState *grid = ctx.data().grid;
+
+    // This hopefully gets the player data, not entirely sure what how to use it
+    // This function is next to be worked on
+    // Idea: use input actions (which is randomized) to update player positions instead of just randomly generating?
+    const CourtState *court = ctx.data().court;
 
     GridPos new_pos = grid_pos;
 
@@ -54,6 +62,7 @@ inline void tick(Engine &ctx,
         } break;
         default: break;
     }
+
 
     action = Action::None;
 
