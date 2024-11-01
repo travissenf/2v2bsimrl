@@ -278,18 +278,19 @@ Tensor Manager::resetTensor() const
                                {impl_->cfg.numWorlds, 1});
 }
 
+// Added new tensor playerTensor, that theoretically will hold [numWorlds, numPlayers, location] (unsure about this implementation)
+Tensor Manager::playerTensor() const
+{
+     return impl_->exportTensor(ExportID::CourtPos, TensorElementType::Float32,
+        {impl_->cfg.numWorlds, impl_->cfg.numPlayers * 2});
+}
+
 Tensor Manager::actionTensor() const
 {
     return impl_->exportTensor(ExportID::Action, TensorElementType::Int32,
         {impl_->cfg.numWorlds, 1});
 }
 
-// Added new tensor playerTensor, that theoretically will hold [numWorlds, numPlayers, location] (unsure about this implementation)
-Tensor Manager::playerTensor() const
-{
-     return impl_->exportTensor(ExportID::PlayerPos, TensorElementType::Float32,
-        {impl_->cfg.numWorlds, impl_->cfg.numPlayers, 2});
-}
 
 Tensor Manager::observationTensor() const
 {

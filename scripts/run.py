@@ -26,10 +26,12 @@ players = []
 
 points = []
 
+# initial player positions
 for i in range(num_players):
     # x = np.random.uniform(0, 94)
     # y = np.random.uniform(0, 50)
     points.append([i * 5, i * 5])
+print(points)
 
 
 # Create simulator object (need to rename)
@@ -38,6 +40,11 @@ grid_world = GridWorld(points, num_worlds, start_cell, end_cell, rewards, walls,
 
 print(grid_world.observations.shape)
 
+
+# Right now, the code simply increments player position by 1 each loop
+# the Player positions tensor is of shape, (num_worlds, num_players * 2)
+# Where each pair of 2 elements (ex. index 2 and index 3) correspond to the x and y position of a player
+# Its a hacked together solution, but hopefully the meeting tommorow can help with that. 
 for i in range(5):
     print("Obs:")
     print(grid_world.observations)
@@ -56,6 +63,7 @@ for i in range(5):
     print(grid_world.rewards)
     print("Dones:   ")
     print(grid_world.dones)
+    
     print("positions: ")
     print(grid_world.player_pos)
     print()

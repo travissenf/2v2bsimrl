@@ -83,9 +83,9 @@ static Cell * setupCellData(
 static void setPositions(Player *players, const float *positions, int64_t num_players){
     for(int64_t c = 0; c < num_players; c++){
         int64_t idx = c * 2;
-        players[idx].id = c;
-        players[idx].x = positions[idx];
-        players[idx].y = positions[idx + 1];
+        players[c].id = c;
+        players[c].x = positions[idx];
+        players[c].y = positions[idx + 1];
     }
 }
 
