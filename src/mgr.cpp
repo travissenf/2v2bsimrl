@@ -245,12 +245,26 @@ Manager::Impl * Manager::Impl::init(const Config &cfg,
         cudaMemcpy(gpu_cell_data, src_grid.cells, num_cell_bytes,
                    cudaMemcpyHostToDevice);
 
+        // Block of code that mallocs the CourtState object, plus the players array it points to
+        uint64_t player_bytes = sizeof(Player) * src_court.numPlayers;
+
+        auto *court_data =
+            (char *)malloc(sizeof(CourtState) + player_bytes);
+        Player *cpu_player_data = (Player *)(court_data + sizeof(CourtState));
+
+        CourtState *cpu_court = (CourtState *)court_data;
+
+        *cpu_court = CourtState {
+            .players = cpu_player_data,
+            .numPlayers = src_court.numPlayers,
+        };
+
         GridState *gpu_grid = (GridState *)grid_data;
 
         HeapArray<WorldInit> world_inits = setupWorldInitData(cfg.numWorlds,
-            episode_mgr, gpu_grid);
+            episode_mgr, gpu_grid, cpu_court);
 
-        return new GPUImpl(cu_ctx, cfg, sim_cfg, episode_mgr, gpu_grid,
+        return new GPUImpl(cu_ctx, cfg, sim_cfg, episode_mgr, gpu_grid, cpu_court,
                            world_inits.data());
 #endif
     } break;
