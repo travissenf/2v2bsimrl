@@ -134,8 +134,9 @@ inline void tick(Engine &ctx,
     CourtPos new_player_pos = court_pos;
 
     // Update the player positions, by just adding 1 right now. Here is where we can add random movement
-    new_player_pos.p1x += 1.0;
-    new_player_pos.p1y += 1.0;
+    new_player_pos.x += new_player_pos.v * std::cos(new_player_pos.th);
+    new_player_pos.y += new_player_pos.v * std::sin(new_player_pos.th);
+    new_player_pos.th += new_player_pos.om;
     // replace court_pos with our new positions
     court_pos = new_player_pos;
 }
@@ -164,6 +165,8 @@ Sim::Sim(Engine &ctx, const Config &cfg, const WorldInit &init)
         };
         ctx.get<CourtPos>(agent) = CourtPos {
             court->players[i].x, court->players[i].y, 
+            court->players[i].th, court->players[i].v, 
+            court->players[i].om, 
         };
         ctx.get<Reward>(agent).r = 0.f;
         ctx.get<Done>(agent).episodeDone = 0.f;

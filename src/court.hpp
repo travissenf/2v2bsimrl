@@ -9,6 +9,9 @@ struct Player {
     int32_t id;
     float x;
     float y;
+    float th;
+    float v;
+    float om;
 };
 
 struct CourtState {

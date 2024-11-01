@@ -82,16 +82,19 @@ static Cell * setupCellData(
 // New function, takes in player objects by reference, and updates players with given positions, and assigns them an index
 static void setPositions(Player *players, const float *positions, int64_t num_players){
     for(int64_t c = 0; c < num_players; c++){
-        int64_t idx = c * 2;
+        int64_t idx = c * 5;
         players[c].id = c;
         players[c].x = positions[idx];
         players[c].y = positions[idx + 1];
+        players[c].th = positions[idx + 2];
+        players[c].v = positions[idx + 3];
+        players[c].om = positions[idx + 4];
     }
 }
 
 // Wrapper function to call helpers, and return our Player array object
 static Player * setupPlayerData(
-    const nb::ndarray<float, nb::shape<-1, 2>,
+    const nb::ndarray<float, nb::shape<-1, 5>,
         nb::c_contig, nb::device::cpu> &init_player_pos,
     int64_t num_players)
 
@@ -114,7 +117,7 @@ NB_MODULE(_madrona_simple_example_cpp, m) {
                                 nb::c_contig, nb::device::cpu> rewards,
                             nb::ndarray<int32_t, nb::shape<-1, 2>,
                                 nb::c_contig, nb::device::cpu> end_cells,
-                            nb::ndarray<float, nb::shape<-1, 2>,
+                            nb::ndarray<float, nb::shape<-1, 5>,
                                 nb::c_contig, nb::device::cpu> init_player_pos, // new input array for initial player pos
                             int64_t start_x,
                             int64_t start_y,

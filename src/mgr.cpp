@@ -296,7 +296,7 @@ Tensor Manager::resetTensor() const
 Tensor Manager::playerTensor() const
 {
      return impl_->exportTensor(ExportID::CourtPos, TensorElementType::Float32,
-        {impl_->cfg.numWorlds, impl_->cfg.numPlayers, 2});
+        {impl_->cfg.numWorlds, impl_->cfg.numPlayers, 5});
 }
 
 Tensor Manager::actionTensor() const

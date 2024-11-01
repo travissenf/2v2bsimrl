@@ -14,7 +14,7 @@ arg_parser.add_argument('--visualize', action='store_true', help="Enable visuali
 arg_parser.add_argument('--logs', action='store_true', help="Enable logging")
 
 arg_parser.add_argument('--num_worlds', type=int, default=1)
-arg_parser.add_argument('--num_steps', type=int, default=5)
+arg_parser.add_argument('--num_steps', type=int, default=10)
 
 arg_parser.add_argument('--use_gpu', type=bool, default=False)
 arg_parser.add_argument('--pos_logs_path', type=str, default="pos_logs.bin")
@@ -57,15 +57,13 @@ points = []
 for i in range(num_players):
     # x = np.random.uniform(0, 94)
     # y = np.random.uniform(0, 50)
-    points.append([i * 5, i * 5])
+    points.append([(i-5) * 5, (i-5) * 5, -np.pi, 5, 0.2])
 print(points)
 
 
 # Create simulator object (need to rename)
 grid_world = GridWorld(points, num_worlds, start_cell, end_cell, rewards, walls, enable_gpu_sim, 0)
 #grid_world.vis_world()
-
-print(grid_world.observations.shape)
 
 if args.logs:
     # Creates file if doesn't exist
@@ -132,12 +130,13 @@ def draw_agents(screen, world):
 for i in range(args.num_steps):
     # Advance simulation across all worlds
     grid_world.step()
-
+    print(grid_world.player_pos)
     if args.logs and not args.visualize:
         with open(args.pos_logs_path, 'ab') as pos_logs:
             pos_logs.write(grid_world.player_pos.numpy().tobytes())
 
     elif args.logs and args.visualize:
+        
         agents = load_agents_from_tensor(grid_world.player_pos)  
 
         screen.blit(court_img, (0, 0)) 

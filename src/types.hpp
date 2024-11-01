@@ -44,6 +44,7 @@ struct Reset {
 //      Given this current state, player 1 should run to the ball, etc.
 //     
 // 2 people - do more of the simulator
+
 // Logic of how to do actions -- outside of madrona
 // can do this in python
 // we will have access to positions of players, position of ball, current game state
@@ -64,9 +65,13 @@ struct GridPos {
 };
 
 // new court position component
+// Can be a court state w/ theta, velocity, ang. velocity (omega)
 struct CourtPos {
-    float p1x;
-    float p1y;
+    float x;
+    float y;
+    float th;
+    float v;
+    float om;
 };
 
 struct Reward {
