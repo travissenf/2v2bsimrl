@@ -136,25 +136,6 @@ inline void tick(Engine &ctx,
     // Update the player positions, by just adding 1 right now. Here is where we can add random movement
     new_player_pos.p1x += 1.0;
     new_player_pos.p1y += 1.0;
-    new_player_pos.p2x += 1.0;
-    new_player_pos.p2y += 1.0;
-    new_player_pos.p3x += 1.0;
-    new_player_pos.p3y += 1.0;
-    new_player_pos.p4x += 1.0;
-    new_player_pos.p4y += 1.0;
-    new_player_pos.p5x += 1.0;
-    new_player_pos.p5y += 1.0;
-    new_player_pos.p6x += 1.0;
-    new_player_pos.p6y += 1.0;
-    new_player_pos.p7x += 1.0;
-    new_player_pos.p7y += 1.0;
-    new_player_pos.p8x += 1.0;
-    new_player_pos.p8y += 1.0;
-    new_player_pos.p9x += 1.0;
-    new_player_pos.p9y += 1.0;
-    new_player_pos.p10x += 1.0;
-    new_player_pos.p10y += 1.0;
-
     // replace court_pos with our new positions
     court_pos = new_player_pos;
 }
@@ -174,27 +155,21 @@ Sim::Sim(Engine &ctx, const Config &cfg, const WorldInit &init)
       court(init.court),
       maxEpisodeLength(cfg.maxEpisodeLength)
 {
-    Entity agent = ctx.makeEntity<Agent>();
-    ctx.get<Action>(agent) = Action::None;
-    ctx.get<GridPos>(agent) = GridPos {
-        grid->startY,
-        grid->startX,
-    };
-    ctx.get<CourtPos>(agent) = CourtPos {
-        court->players[0].x, court->players[0].y, 
-        court->players[1].x, court->players[1].y, 
-        court->players[2].x, court->players[2].y, 
-        court->players[3].x, court->players[3].y, 
-        court->players[4].x, court->players[4].y, 
-        court->players[5].x, court->players[5].y, 
-        court->players[6].x, court->players[6].y, 
-        court->players[7].x, court->players[7].y, 
-        court->players[8].x, court->players[8].y, 
-        court->players[9].x, court->players[9].y
-    };
-    ctx.get<Reward>(agent).r = 0.f;
-    ctx.get<Done>(agent).episodeDone = 0.f;
-    ctx.get<CurStep>(agent).step = 0;
+    for (int i = 0; i < court->numPlayers; i++){
+        Entity agent = ctx.makeEntity<Agent>();
+        ctx.get<Action>(agent) = Action::None;
+        ctx.get<GridPos>(agent) = GridPos {
+            grid->startY,
+            grid->startX,
+        };
+        ctx.get<CourtPos>(agent) = CourtPos {
+            court->players[i].x, court->players[i].y, 
+        };
+        ctx.get<Reward>(agent).r = 0.f;
+        ctx.get<Done>(agent).episodeDone = 0.f;
+        ctx.get<CurStep>(agent).step = 0;
+    }
+    
 }
 
 MADRONA_BUILD_MWGPU_ENTRY(Engine, Sim, Sim::Config, WorldInit);

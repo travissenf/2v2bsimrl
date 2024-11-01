@@ -7,12 +7,13 @@ import os
 import csv
 import sys
 import argparse
+import time
 
 arg_parser = argparse.ArgumentParser()
 arg_parser.add_argument('--visualize', action='store_true', help="Enable visualization")
 arg_parser.add_argument('--logs', action='store_true', help="Enable logging")
 
-arg_parser.add_argument('--num_worlds', type=int, default=24)
+arg_parser.add_argument('--num_worlds', type=int, default=1)
 arg_parser.add_argument('--num_steps', type=int, default=5)
 
 arg_parser.add_argument('--use_gpu', type=bool, default=False)
@@ -83,10 +84,9 @@ def load_agents_from_tensor(tensor):
         
         for player_id in range(num_players): 
             agent_id = player_id
-            
             # Extract x and y for the player
-            x = float(world_data[2 * player_id].item()) * 40 
-            y = float(world_data[2 * player_id + 1].item()) * 40
+            x = float(world_data[player_id][0]) * 5
+            y = float(world_data[player_id][1]) * 5
             
             # Assign color based on player ID
             if 0 <= agent_id <= 4:
@@ -132,9 +132,6 @@ def draw_agents(screen, world):
 for i in range(args.num_steps):
     # Advance simulation across all worlds
     grid_world.step()
-    
-    print("positions: ")
-    print(grid_world.player_pos)
 
     if args.logs and not args.visualize:
         with open(args.pos_logs_path, 'ab') as pos_logs:
@@ -146,6 +143,7 @@ for i in range(args.num_steps):
         screen.blit(court_img, (0, 0)) 
         draw_agents(screen, agents) 
         pygame.display.flip() 
+        time.sleep(1)
 
 pygame.quit()
 sys.exit()

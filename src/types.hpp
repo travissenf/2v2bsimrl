@@ -18,6 +18,38 @@ struct Reset {
     int32_t resetNow;
 };
 
+// movement action
+//      acceleration vector relative to current orientation
+//       <1, 0> should be in same direction as current orientation
+//      current position
+//      current heading angle
+//      current velocity
+//      current angular velocity (changes heading angle)
+//      hasBall
+// sim says:
+    // if player has ball, move ball according to player
+// action space:
+//      velocity change
+//      angular velocity change
+//      dribble
+//      pass
+//      shoot
+//  After basic actions above,
+//      rebound?
+//      blocks
+//      charges
+
+// Start hand crafting policies - 1 person
+//      Can hand craft policies to make game look more coherent
+//      Given this current state, player 1 should run to the ball, etc.
+//     
+// 2 people - do more of the simulator
+// Logic of how to do actions -- outside of madrona
+// can do this in python
+// we will have access to positions of players, position of ball, current game state
+// Officiating of the game and simulating of the game is inside madrona
+// Do the bare minimum and keep on going
+// player orientation
 enum class Action : int32_t {
     Up    = 0,
     Down  = 1,
@@ -35,25 +67,6 @@ struct GridPos {
 struct CourtPos {
     float p1x;
     float p1y;
-    float p2x;
-    float p2y;
-    float p3x;
-    float p3y;
-    float p4x;
-    float p4y;
-    float p5x;
-    float p5y;
-    float p6x;
-    float p6y;
-    float p7x;
-    float p7y;
-    float p8x;
-    float p8y;
-    float p9x;
-    float p9y;
-    float p10x;
-    float p10y;
-
 };
 
 struct Reward {
