@@ -296,15 +296,14 @@ Tensor Manager::resetTensor() const
 Tensor Manager::playerTensor() const
 {
      return impl_->exportTensor(ExportID::CourtPos, TensorElementType::Float32,
-        {impl_->cfg.numWorlds, impl_->cfg.numPlayers, 5});
+        {impl_->cfg.numWorlds, impl_->cfg.numPlayers, 6});
 }
 
 Tensor Manager::actionTensor() const
 {
-    return impl_->exportTensor(ExportID::Action, TensorElementType::Int32,
-        {impl_->cfg.numWorlds, 1});
+    return impl_->exportTensor(ExportID::Action, TensorElementType::Float32,
+        {impl_->cfg.numWorlds, impl_->cfg.numPlayers, 3});
 }
-
 
 Tensor Manager::observationTensor() const
 {

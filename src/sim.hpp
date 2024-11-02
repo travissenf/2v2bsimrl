@@ -25,6 +25,7 @@ struct Sim : public madrona::WorldBase {
 
     Sim(Engine &ctx, const Config &cfg, const WorldInit &init);
 
+    float dt;
     EpisodeManager *episodeMgr;
     const GridState *grid;
     const CourtState *court; // Add court to constructor

@@ -20,7 +20,7 @@ arg_parser.add_argument('--use_gpu', type=bool, default=False)
 arg_parser.add_argument('--pos_logs_path', type=str, default="pos_logs.bin")
 args = arg_parser.parse_args()
 
-PLAYER_CIRCLE_SIZE = 20  # Circle size, representing players
+PLAYER_CIRCLE_SIZE = 15  # Circle size, representing players
 SCREEN_WIDTH, SCREEN_HEIGHT = 940, 500 
 
 # Init
@@ -38,6 +38,7 @@ enable_gpu_sim = False
 if args.use_gpu:
     enable_gpu_sim = True
 
+dt = 0.1
 array_shape = [5,6]
 walls = np.zeros(array_shape)
 rewards = np.zeros(array_shape)
@@ -55,9 +56,8 @@ points = []
 
 # initial player positions
 for i in range(num_players):
-    # x = np.random.uniform(0, 94)
-    # y = np.random.uniform(0, 50)
-    points.append([(i-5) * 5, (i-5) * 5, -np.pi, 5, 0.2])
+    # x, y, th, v, angv, facingang
+    points.append([(i-5) * 5, (i-5) * 5, 0, 10.0, 1.0, -np.pi])
 print(points)
 
 
@@ -85,6 +85,9 @@ def load_agents_from_tensor(tensor):
             # Extract x and y for the player
             x = float(world_data[player_id][0]) * 5
             y = float(world_data[player_id][1]) * 5
+            th = float(world_data[player_id][2])
+            v = float(world_data[player_id][3]) * 5
+            facing = float(world_data[player_id][5])
             
             # Assign color based on player ID
             if 0 <= agent_id <= 4:
@@ -99,6 +102,9 @@ def load_agents_from_tensor(tensor):
                 'id': agent_id + 1,  # Increment ID by 1
                 'x': x,
                 'y': y,
+                'th':th,
+                'v':v,
+                'facing': facing,
                 'color': color
             }
             agents.append(agent)
@@ -117,6 +123,19 @@ def draw_agents(screen, world):
         screen_y = SCREEN_HEIGHT / 2 - agent['y']  # Y axis is opposite
 
         pygame.draw.circle(screen, agent['color'], (int(screen_x), int(screen_y)), PLAYER_CIRCLE_SIZE)
+
+        line_length = agent['v']
+
+        orientation = agent['facing'] 
+        line_end_x = screen_x + 20 * np.cos(orientation)
+        line_end_y = screen_y - 20 * np.sin(orientation) 
+        
+        movedir = agent['th'] 
+        movement_x = screen_x + line_length * np.cos(movedir)
+        movement_y = screen_y - line_length * np.sin(movedir) 
+
+        pygame.draw.line(screen, (255, 0, 0), (int(screen_x), int(screen_y)), (int(line_end_x), int(line_end_y)), 5)
+        pygame.draw.line(screen, (0, 255, 0), (int(screen_x), int(screen_y)), (int(movement_x), int(movement_y)), 5)
         
         # Showing ID
         font = pygame.font.SysFont(None, 24)
@@ -127,7 +146,14 @@ def draw_agents(screen, world):
 # the Player positions tensor is of shape, (num_worlds, num_players * 2)
 # Where each pair of 2 elements (ex. index 2 and index 3) correspond to the x and y position of a player
 # Its a hacked together solution, but hopefully the meeting tommorow can help with that. 
+print(grid_world.player_pos)
 for i in range(args.num_steps):
+
+    # set action tensor
+    for j in range(num_worlds):
+        for i in range(num_players):
+            # of shape (num_worlds, num_players, 3) where 3 is [acceleration, direction of accel, angular accel]
+            grid_world.actions[j, i] = torch.tensor([5.0, i * 0.5, (i-5) * 0.2])
     # Advance simulation across all worlds
     grid_world.step()
     print(grid_world.player_pos)
@@ -142,7 +168,7 @@ for i in range(args.num_steps):
         screen.blit(court_img, (0, 0)) 
         draw_agents(screen, agents) 
         pygame.display.flip() 
-        time.sleep(1)
+        time.sleep(0.1)
 
 pygame.quit()
 sys.exit()

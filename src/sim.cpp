@@ -50,24 +50,26 @@ inline void tick(Engine &ctx,
 
     GridPos new_pos = grid_pos;
 
-    switch (action) {
-        case Action::Up: {
-            new_pos.y += 1;
-        } break;
-        case Action::Down: {
-            new_pos.y -= 1;
-        } break;
-        case Action::Left: {
-            new_pos.x -= 1;
-        } break;
-        case Action::Right: {
-            new_pos.x += 1;
-        } break;
-        default: break;
-    }
+    float dt = ctx.data().dt;
+    //Old action code
+    // switch (action) {
+    //     case Action::Up: {
+    //         new_pos.y += 1;
+    //     } break;
+    //     case Action::Down: {
+    //         new_pos.y -= 1;
+    //     } break;
+    //     case Action::Left: {
+    //         new_pos.x -= 1;
+    //     } break;
+    //     case Action::Right: {
+    //         new_pos.x += 1;
+    //     } break;
+    //     default: break;
+    // }
 
 
-    action = Action::None;
+    // action = Action::None;
 
     if (new_pos.x < 0) {
         new_pos.x = 0;
@@ -134,9 +136,15 @@ inline void tick(Engine &ctx,
     CourtPos new_player_pos = court_pos;
 
     // Update the player positions, by just adding 1 right now. Here is where we can add random movement
-    new_player_pos.x += new_player_pos.v * std::cos(new_player_pos.th);
-    new_player_pos.y += new_player_pos.v * std::sin(new_player_pos.th);
-    new_player_pos.th += new_player_pos.om;
+    new_player_pos.x += new_player_pos.v * cos(new_player_pos.th) * dt;
+    new_player_pos.y += new_player_pos.v * sin(new_player_pos.th) * dt;
+    new_player_pos.facing += new_player_pos.om * dt;
+    new_player_pos.om += action.alpha * dt;
+    float vxnew = new_player_pos.v * cos(new_player_pos.th) + action.accel * cos(action.th) * dt;
+    float vynew = new_player_pos.v * sin(new_player_pos.th) + action.accel * sin(action.th) * dt;
+
+    new_player_pos.v = std::sqrt(vxnew * vxnew + vynew * vynew);
+    new_player_pos.th = std::atan2(vynew, vxnew);
     // replace court_pos with our new positions
     court_pos = new_player_pos;
 }
@@ -154,11 +162,15 @@ Sim::Sim(Engine &ctx, const Config &cfg, const WorldInit &init)
       episodeMgr(init.episodeMgr),
       grid(init.grid),
       court(init.court),
+      dt(0.1),
       maxEpisodeLength(cfg.maxEpisodeLength)
 {
+
     for (int i = 0; i < court->numPlayers; i++){
         Entity agent = ctx.makeEntity<Agent>();
-        ctx.get<Action>(agent) = Action::None;
+        ctx.get<Action>(agent) = Action {
+            0.0, 0.0, 0.0,
+        };
         ctx.get<GridPos>(agent) = GridPos {
             grid->startY,
             grid->startX,
@@ -166,7 +178,7 @@ Sim::Sim(Engine &ctx, const Config &cfg, const WorldInit &init)
         ctx.get<CourtPos>(agent) = CourtPos {
             court->players[i].x, court->players[i].y, 
             court->players[i].th, court->players[i].v, 
-            court->players[i].om, 
+            court->players[i].om, court->players[i].facing,
         };
         ctx.get<Reward>(agent).r = 0.f;
         ctx.get<Done>(agent).episodeDone = 0.f;

@@ -12,6 +12,7 @@ struct Player {
     float th;
     float v;
     float om;
+    float facing;
 };
 
 struct CourtState {

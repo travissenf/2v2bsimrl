@@ -51,12 +51,20 @@ struct Reset {
 // Officiating of the game and simulating of the game is inside madrona
 // Do the bare minimum and keep on going
 // player orientation
-enum class Action : int32_t {
-    Up    = 0,
-    Down  = 1,
-    Left  = 2,
-    Right = 3,
-    None,
+
+// Old action class
+// enum class Action : int32_t {
+//     Up    = 0,
+//     Down  = 1,
+//     Left  = 2,
+//     Right = 3,
+//     None,
+// };
+
+struct Action {
+    float accel;
+    float th;
+    float alpha;
 };
 
 struct GridPos {
@@ -72,6 +80,7 @@ struct CourtPos {
     float th;
     float v;
     float om;
+    float facing;
 };
 
 struct Reward {
