@@ -21,11 +21,13 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &)
     registry.registerComponent<BallHeld>();
     registry.registerComponent<BallReference>();
     registry.registerComponent<PlayerID>();
+    registry.registerComponent<AgentList>();
 
     registry.registerArchetype<BallArchetype>();
     registry.registerArchetype<Agent>();
 
     registry.registerSingleton<BallReference>();
+    registry.registerSingleton<AgentList>();
 
     // registry.registerArchetype<PlayerAgent>();
 
@@ -161,12 +163,35 @@ inline void tick(Engine &ctx,
     court_pos = new_player_pos;
 }
 
+inline void balltick(Engine &ctx,
+                BallState &ball_state,
+                BallHeld &ball_held,
+                CurStep &episode_step)
+                //  
+{
+    BallState new_ball_state = ball_state;
+    new_ball_state.x += 3.0;
+    auto players = ctx.singleton<AgentList>().e;
+    if (ball_held.held != -1){
+        Entity p = players[ball_held.held];
+        new_ball_state.x = ctx.get<CourtPos>(p).x;
+        new_ball_state.y = ctx.get<CourtPos>(p).y;
+        new_ball_state.v = ctx.get<CourtPos>(p).v;
+        new_ball_state.th = ctx.get<CourtPos>(p).th;
+    }
+    ball_state = new_ball_state;
+    uint32_t cur_step = episode_step.step;
+    episode_step.step = cur_step + 1;
+}
+
 void Sim::setupTasks(TaskGraphManager &taskgraph_mgr,
                      const Config &)
 {
     TaskGraphBuilder &builder = taskgraph_mgr.init(0);
-    builder.addToGraph<ParallelForNode<Engine, tick,
+    auto tickfunc = builder.addToGraph<ParallelForNode<Engine, tick,
         Action, Reset, GridPos, Reward, Done, CurStep, CourtPos>>({});
+    builder.addToGraph<ParallelForNode<Engine, balltick,
+        BallState, BallHeld, CurStep>>({tickfunc});
 }
 
 Sim::Sim(Engine &ctx, const Config &cfg, const WorldInit &init)
@@ -179,7 +204,7 @@ Sim::Sim(Engine &ctx, const Config &cfg, const WorldInit &init)
 {
     ctx.singleton<BallReference>().theBall = ctx.makeEntity<BallArchetype>();
     ctx.get<BallState>(ctx.singleton<BallReference>().theBall) = BallState {0.0, 0.0, 0.0, 0.0};
-    ctx.get<BallHeld>(ctx.singleton<BallReference>().theBall) = BallHeld {-1};
+    ctx.get<BallHeld>(ctx.singleton<BallReference>().theBall) = BallHeld {0};
     ctx.get<CurStep>(ctx.singleton<BallReference>().theBall).step = 0.0;
 
     for (int i = 0; i < court->numPlayers; i++){
@@ -200,6 +225,7 @@ Sim::Sim(Engine &ctx, const Config &cfg, const WorldInit &init)
         ctx.get<Done>(agent).episodeDone = 0.f;
         ctx.get<CurStep>(agent).step = 0;
         ctx.get<PlayerID>(agent).id = i;
+        ctx.singleton<AgentList>().e[i] = agent;
     }
     
 }

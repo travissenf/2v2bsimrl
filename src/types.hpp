@@ -121,12 +121,16 @@ struct PlayerID {
 struct BallState {
     float x;
     float y;
+    float th;    
     float v;
-    float th;
 };
 
 struct BallHeld {
     int8_t held;
+};
+
+struct AgentList {
+    madrona::Entity e[10];
 };
 
 struct Agent : public madrona::Archetype<
