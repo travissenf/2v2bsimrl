@@ -8,6 +8,9 @@ import csv
 import sys
 import argparse
 import time
+from datetime import datetime
+from moviepy.editor import ImageSequenceClip
+
 
 arg_parser = argparse.ArgumentParser()
 arg_parser.add_argument('--visualize', action='store_true', help="Enable visualization")
@@ -18,6 +21,8 @@ arg_parser.add_argument('--num_steps', type=int, default=10)
 
 arg_parser.add_argument('--use_gpu', type=bool, default=False)
 arg_parser.add_argument('--pos_logs_path', type=str, default="pos_logs.bin")
+
+arg_parser.add_argument('--savevideo', action='store_true', help="Save each frame as an image for video creation")
 args = arg_parser.parse_args()
 
 PLAYER_CIRCLE_SIZE = 15  # Circle size, representing players
@@ -27,6 +32,18 @@ SCREEN_WIDTH, SCREEN_HEIGHT = 940, 500
 pygame.init()
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Basketball Court Simulation")
+
+# Load agent images
+pacman_yellow = pygame.image.load("Pacman_yellow.png")
+pacman_blue = pygame.image.load("Pacman_blue.png")
+ball_image = pygame.image.load("ball.png")
+
+# Scale images to fit desired player size
+pacman_yellow = pygame.transform.scale(pacman_yellow, (PLAYER_CIRCLE_SIZE * 4, PLAYER_CIRCLE_SIZE * 4))
+pacman_blue = pygame.transform.scale(pacman_blue, (PLAYER_CIRCLE_SIZE * 4, PLAYER_CIRCLE_SIZE * 4))
+ball_image = pygame.transform.scale(ball_image, (PLAYER_CIRCLE_SIZE * 2, PLAYER_CIRCLE_SIZE * 2))
+
+
 
 # Load court image
 court_img = pygame.image.load("court.png")
@@ -78,6 +95,7 @@ def load_agents_from_tensor(tensor):
     worlds_agents = []
     
     for world_index, world_data in enumerate(tensor):
+        # Load agents data
         agents = []
         
         for player_id in range(num_players): 
@@ -114,15 +132,62 @@ def load_agents_from_tensor(tensor):
     
     return worlds_agents
 
-def draw_agents(screen, world):
+def load_ballpos_from_tensor(tensor):
+    worlds_balls = []
+    
+    for world_index, ball_data in enumerate(tensor):
+
+        x = float(ball_data[0]) *5
+        y = float(ball_data[1]) *5
+        th = float(ball_data[2])
+        v = float(ball_data[3]) *5
+
+        ball = {
+            'x': x,
+            'y': y,
+            'th':th,
+            'v':v,
+        }
+
+        worlds_balls.append({'world_index': world_index, 'ballpos': ball})
+    
+    return worlds_balls
+
+def load_whoholds_from_tensor(tensor):
+    worlds_whoholds = []
+    
+    for world_index, whoholds_data in enumerate(tensor):
+
+        whoholds_idx = int(whoholds_data[0])
+
+
+        whoholds = {
+            'whoholds': whoholds_idx
+        }
+
+        worlds_whoholds.append({'world_index': world_index, 'whoheld': whoholds})
+    
+    return worlds_whoholds
+
+def draw_agents(screen, world, world_ball_position):
     agents = world[0]['agents']
+    ball_pos = world_ball_position[0]['ballpos']
 
     for agent in agents:
         # Using center circle as (0,0)
         screen_x = SCREEN_WIDTH / 2 + agent['x']
         screen_y = SCREEN_HEIGHT / 2 - agent['y']  # Y axis is opposite
 
-        pygame.draw.circle(screen, agent['color'], (int(screen_x), int(screen_y)), PLAYER_CIRCLE_SIZE)
+        # Choose image based on agent ID
+        if 0 <= agent['id'] <= 5:
+            agent_image = pacman_yellow
+        else:
+            agent_image = pacman_blue
+
+        # Rotation angle is the same as agent's movement direction
+        rotated_image = pygame.transform.rotate(agent_image, np.degrees(agent['th']))
+        rotated_rect = rotated_image.get_rect(center=(screen_x, screen_y))
+        screen.blit(rotated_image, rotated_rect.topleft)
 
         line_length = agent['v']
 
@@ -135,19 +200,34 @@ def draw_agents(screen, world):
         movement_y = screen_y - line_length * np.sin(movedir) 
 
         pygame.draw.line(screen, (255, 0, 0), (int(screen_x), int(screen_y)), (int(line_end_x), int(line_end_y)), 5)
-        pygame.draw.line(screen, (0, 255, 0), (int(screen_x), int(screen_y)), (int(movement_x), int(movement_y)), 5)
+
+        # No longer need the green movement line, since pacman's mouth is the direction
+        # pygame.draw.line(screen, (0, 255, 0), (int(screen_x), int(screen_y)), (int(movement_x), int(movement_y)), 5)
         
         # Showing ID
-        font = pygame.font.SysFont(None, 24)
+        font = pygame.font.SysFont(None, 40)
         text = font.render(str(agent['id']), True, (255, 255, 255))
         screen.blit(text, (int(screen_x) - 10, int(screen_y) - 10))
+    
+    ball_screen_x = SCREEN_WIDTH / 2 + ball_pos['x']
+    ball_screen_y = SCREEN_HEIGHT / 2 - ball_pos['y']
+    ball_rect = ball_image.get_rect(center=(ball_screen_x, ball_screen_y))
+    screen.blit(ball_image, ball_rect.topleft)
 
 # Right now, the code simply increments player position by 1 each loop
 # the Player positions tensor is of shape, (num_worlds, num_players * 2)
 # Where each pair of 2 elements (ex. index 2 and index 3) correspond to the x and y position of a player
 # Its a hacked together solution, but hopefully the meeting tommorow can help with that. 
 print(grid_world.player_pos)
+
+frames = []
 for i in range(args.num_steps):
+
+    if args.savevideo:
+        frame_data = pygame.surfarray.array3d(screen)
+        frames.append(frame_data.transpose((1, 0, 2)))  # Adjust to (width, height, channels)
+
+
 
     # set action tensor
     for j in range(num_worlds):
@@ -163,15 +243,29 @@ for i in range(args.num_steps):
     if args.logs and not args.visualize:
         with open(args.pos_logs_path, 'ab') as pos_logs:
             pos_logs.write(grid_world.player_pos.numpy().tobytes())
+            pos_logs.write(grid_world.ball_pos.numpy().tobytes())
+            pos_logs.write(grid_world.who_holds.numpy().tobytes())
 
     elif args.logs and args.visualize:
         
         agents = load_agents_from_tensor(grid_world.player_pos)  
+        ballpos = load_ballpos_from_tensor(grid_world.ball_pos)
+        whoholds = load_whoholds_from_tensor(grid_world.who_holds)
 
         screen.blit(court_img, (0, 0)) 
-        draw_agents(screen, agents) 
+        draw_agents(screen, agents, ballpos) 
         pygame.display.flip() 
         time.sleep(0.1)
+
+if args.savevideo and frames:
+    # Set the filename with a timestamp
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    video_filename = f"simulation_{timestamp}.mp4"
+    
+    # Set the frame rate (e.g., 10 FPS)
+    clip = ImageSequenceClip(frames, fps=10)
+    clip.write_videofile(video_filename, codec="libx264")
+
 
 pygame.quit()
 sys.exit()
