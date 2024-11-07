@@ -323,4 +323,16 @@ Tensor Manager::doneTensor() const
         {impl_->cfg.numWorlds, 1});
 }
 
+Tensor Manager::ballTensor() const
+{
+    return impl_->exportTensor(ExportID::BallLoc, TensorElementType::Float32,
+        {impl_->cfg.numWorlds, 4});
+}
+
+Tensor Manager::heldTensor() const
+{
+    return impl_->exportTensor(ExportID::WhoHolds, TensorElementType::Int8,
+        {impl_->cfg.numWorlds, 1});
+}
+
 }

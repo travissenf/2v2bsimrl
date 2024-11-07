@@ -17,8 +17,16 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &)
     registry.registerComponent<Done>();
     registry.registerComponent<CurStep>();
     registry.registerComponent<CourtPos>();
+    registry.registerComponent<BallState>();
+    registry.registerComponent<BallHeld>();
+    registry.registerComponent<BallReference>();
+    registry.registerComponent<PlayerID>();
 
+    registry.registerArchetype<BallArchetype>();
     registry.registerArchetype<Agent>();
+
+    registry.registerSingleton<BallReference>();
+
     // registry.registerArchetype<PlayerAgent>();
 
     // Export tensors for pytorch
@@ -28,6 +36,10 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &)
     registry.exportColumn<Agent, CourtPos>((uint32_t)ExportID::CourtPos);
     registry.exportColumn<Agent, Reward>((uint32_t)ExportID::Reward);
     registry.exportColumn<Agent, Done>((uint32_t)ExportID::Done);
+
+    registry.exportColumn<BallArchetype, BallState>((uint32_t)ExportID::BallLoc);
+    registry.exportColumn<BallArchetype, BallHeld>((uint32_t)ExportID::WhoHolds);
+
 }
 
 inline void tick(Engine &ctx,
@@ -165,6 +177,10 @@ Sim::Sim(Engine &ctx, const Config &cfg, const WorldInit &init)
       dt(0.1),
       maxEpisodeLength(cfg.maxEpisodeLength)
 {
+    ctx.singleton<BallReference>().theBall = ctx.makeEntity<BallArchetype>();
+    ctx.get<BallState>(ctx.singleton<BallReference>().theBall) = BallState {0.0, 0.0, 0.0, 0.0};
+    ctx.get<BallHeld>(ctx.singleton<BallReference>().theBall) = BallHeld {-1};
+    ctx.get<CurStep>(ctx.singleton<BallReference>().theBall).step = 0.0;
 
     for (int i = 0; i < court->numPlayers; i++){
         Entity agent = ctx.makeEntity<Agent>();
@@ -183,6 +199,7 @@ Sim::Sim(Engine &ctx, const Config &cfg, const WorldInit &init)
         ctx.get<Reward>(agent).r = 0.f;
         ctx.get<Done>(agent).episodeDone = 0.f;
         ctx.get<CurStep>(agent).step = 0;
+        ctx.get<PlayerID>(agent).id = i;
     }
     
 }

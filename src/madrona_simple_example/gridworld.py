@@ -41,6 +41,8 @@ class GridWorld:
         self.rewards = self.sim.reward_tensor().to_torch()
         self.dones = self.sim.done_tensor().to_torch()
         self.player_pos = self.sim.player_tensor().to_torch() #new player position tensor
+        self.ball_pos = self.sim.ball_tensor().to_torch()
+        self.who_holds = self.sim.held_tensor().to_torch()
 
     def step(self):
         self.sim.step()

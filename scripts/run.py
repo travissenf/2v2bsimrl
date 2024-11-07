@@ -157,6 +157,9 @@ for i in range(args.num_steps):
     # Advance simulation across all worlds
     grid_world.step()
     print(grid_world.player_pos)
+    print(grid_world.ball_pos)
+    print(grid_world.who_holds)
+
     if args.logs and not args.visualize:
         with open(args.pos_logs_path, 'ab') as pos_logs:
             pos_logs.write(grid_world.player_pos.numpy().tobytes())
