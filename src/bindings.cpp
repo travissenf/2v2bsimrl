@@ -178,6 +178,7 @@ NB_MODULE(_madrona_simple_example_cpp, m) {
         .def("done_tensor", &Manager::doneTensor)
         .def("ball_tensor", &Manager::ballTensor)
         .def("held_tensor", &Manager::heldTensor)
+        .def("choice_tensor", &Manager::choiceTensor)
     ;
 }
 

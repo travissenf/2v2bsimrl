@@ -16,6 +16,7 @@ enum class ExportID : uint32_t {
     NumExports,
     BallLoc,
     WhoHolds,
+    Choice,
 };
 
 struct Reset {
@@ -65,8 +66,10 @@ struct Reset {
 //     None,
 // };
 
-enum class Decision : int32_t {
+enum class Decision : int8_t {
     Move = 0, 
+    Shoot = 1,
+    None,
 };
 
 struct Action {
@@ -109,6 +112,7 @@ struct CurStep {
 
 struct PlayerStatus {
     bool hasBall;
+    bool justShot;
 };
 
 struct PlayerID {
@@ -127,6 +131,7 @@ struct BallState {
 
 struct BallHeld {
     int8_t held;
+    int8_t whoShot;
 };
 
 struct AgentList {
@@ -141,7 +146,9 @@ struct Agent : public madrona::Archetype<
     Done,
     CurStep,
     CourtPos, 
-    PlayerID
+    PlayerID,
+    Decision, 
+    PlayerStatus
 > {};
 
 struct BallArchetype : public madrona::Archetype<
