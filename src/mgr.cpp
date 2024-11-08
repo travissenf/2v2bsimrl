@@ -332,7 +332,12 @@ Tensor Manager::ballTensor() const
 Tensor Manager::heldTensor() const
 {
     return impl_->exportTensor(ExportID::WhoHolds, TensorElementType::Int8,
-        {impl_->cfg.numWorlds, 1});
+        {impl_->cfg.numWorlds, 2});
 }
 
+Tensor Manager::choiceTensor() const
+{
+    return impl_->exportTensor(ExportID::Choice, TensorElementType::Int8,
+        {impl_->cfg.numWorlds, impl_->cfg.numPlayers, 1});
+}
 }
