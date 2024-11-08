@@ -153,10 +153,30 @@ inline void tick(Engine &ctx,
     new_player_pos.x += new_player_pos.v * cos(new_player_pos.th) * dt;
     new_player_pos.y += new_player_pos.v * sin(new_player_pos.th) * dt;
     new_player_pos.facing += new_player_pos.om * dt;
+
+    action.vdes = std::max(action.vdes, (float)30.0);
+    float dx = action.vdes * cos(action.thdes);
+    float dy = action.vdes * sin(action.thdes);
+
+    float ax = new_player_pos.v * cos(new_player_pos.th);
+    float ay = new_player_pos.v * sin(new_player_pos.th);
+
+    float lx = dx - ax;
+    float ly = dy - ay;
+
+    float dist = sqrt(lx * lx + ly * ly);
+
+    if (dist <= 20.0 * dt){
+        new_player_pos.v = action.vdes;
+        new_player_pos.th = action.thdes;
+    } else {
+        ax += ((20.0 * dt) / dist) * lx;
+        ay += ((20.0 * dt) / dist) * ly;
+        new_player_pos.v = sqrt(ax * ax + ay * ay);
+        new_player_pos.th = atan2(ay, ax);
+    }
     new_player_pos.om = action.omdes;
-    new_player_pos.v = action.vdes;
-    new_player_pos.th = action.thdes;
-    
+
     // replace court_pos with our new positions
     court_pos = new_player_pos;
 }
