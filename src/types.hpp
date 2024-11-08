@@ -70,9 +70,9 @@ enum class Decision : int32_t {
 };
 
 struct Action {
-    float accel;
-    float th;
-    float alpha;
+    float vdes;
+    float thdes;
+    float omdes;
 };
 
 struct GridPos {

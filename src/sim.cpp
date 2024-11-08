@@ -153,12 +153,10 @@ inline void tick(Engine &ctx,
     new_player_pos.x += new_player_pos.v * cos(new_player_pos.th) * dt;
     new_player_pos.y += new_player_pos.v * sin(new_player_pos.th) * dt;
     new_player_pos.facing += new_player_pos.om * dt;
-    new_player_pos.om += action.alpha * dt;
-    float vxnew = new_player_pos.v * cos(new_player_pos.th) + action.accel * cos(action.th) * dt;
-    float vynew = new_player_pos.v * sin(new_player_pos.th) + action.accel * sin(action.th) * dt;
-
-    new_player_pos.v = std::sqrt(vxnew * vxnew + vynew * vynew);
-    new_player_pos.th = std::atan2(vynew, vxnew);
+    new_player_pos.om = action.omdes;
+    new_player_pos.v = action.vdes;
+    new_player_pos.th = action.thdes;
+    
     // replace court_pos with our new positions
     court_pos = new_player_pos;
 }
