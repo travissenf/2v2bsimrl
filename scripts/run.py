@@ -17,7 +17,7 @@ arg_parser.add_argument('--visualize', action='store_true', help="Enable visuali
 arg_parser.add_argument('--logs', action='store_true', help="Enable logging")
 
 arg_parser.add_argument('--num_worlds', type=int, default=1)
-arg_parser.add_argument('--num_steps', type=int, default=10)
+arg_parser.add_argument('--num_steps', type=int, default=100)
 
 arg_parser.add_argument('--use_gpu', type=bool, default=False)
 arg_parser.add_argument('--pos_logs_path', type=str, default="pos_logs.bin")
@@ -74,8 +74,12 @@ points = []
 # initial player positions
 for i in range(num_players):
     # x, y, th, v, angv, facingang
-    points.append([(i-5) * 5, (i-5) * 5, 0, 10.0, 1.0, -np.pi])
+    # points.append([(i-5) * 5, (i-5) * 5, 0, 10.0, 1.0, -np.pi])
+    points.append([(i-5) * 5, (i-5) * 5, 0, 0.0, 0.0, -np.pi])
+
 print(points)
+
+
 
 
 # Create simulator object (need to rename)
@@ -184,26 +188,20 @@ def draw_agents(screen, world, world_ball_position):
         else:
             agent_image = pacman_blue
 
-        # Rotation angle is the same as agent's movement direction
-        rotated_image = pygame.transform.rotate(agent_image, np.degrees(agent['th']))
+        # Rotation angle is the player's facing angle
+        rotated_image = pygame.transform.rotate(agent_image, np.degrees(agent['facing']))
         rotated_rect = rotated_image.get_rect(center=(screen_x, screen_y))
         screen.blit(rotated_image, rotated_rect.topleft)
 
         line_length = agent['v']
 
-        orientation = agent['facing'] 
-        line_end_x = screen_x + 20 * np.cos(orientation)
-        line_end_y = screen_y - 20 * np.sin(orientation) 
-        
         movedir = agent['th'] 
         movement_x = screen_x + line_length * np.cos(movedir)
         movement_y = screen_y - line_length * np.sin(movedir) 
 
-        pygame.draw.line(screen, (255, 0, 0), (int(screen_x), int(screen_y)), (int(line_end_x), int(line_end_y)), 5)
+        # This is the redline showing the player's moving direction, it's length represents the player's velocity magnitude
+        pygame.draw.line(screen, (255, 0, 0), (int(screen_x), int(screen_y)), (int(movement_x), int(movement_y)), 5)
 
-        # No longer need the green movement line, since pacman's mouth is the direction
-        # pygame.draw.line(screen, (0, 255, 0), (int(screen_x), int(screen_y)), (int(movement_x), int(movement_y)), 5)
-        
         # Showing ID
         font = pygame.font.SysFont(None, 40)
         text = font.render(str(agent['id']), True, (255, 255, 255))
@@ -214,6 +212,40 @@ def draw_agents(screen, world, world_ball_position):
     ball_rect = ball_image.get_rect(center=(ball_screen_x, ball_screen_y))
     screen.blit(ball_image, ball_rect.topleft)
 
+def goto_position(world_index, agent_index, goal_position, desired_velocity, grid_world):
+    # Get the agent's current position and facing angle
+    x = grid_world.player_pos[0][agent_index][0]
+    y = grid_world.player_pos[0][agent_index][1]
+    facing_angle = grid_world.player_pos[0][agent_index][5]
+
+    # Compute the vector towards the goal
+    dx = goal_position[0] - x
+    dy = goal_position[1] - y
+
+    # Compute the angle towards the goal
+    desired_direction = np.arctan2(dy, dx)
+
+    # Stop early if reaches goal already
+    if abs(dx) < 1 and abs(dy) < 1:
+        print("Yes, reached!")
+        grid_world.actions[world_index, agent_index] = torch.tensor([0, 0, 0])
+        return grid_world.actions[world_index, agent_index]
+
+    # Normalize desired_direction to be between -pi and pi
+    desired_direction = (desired_direction + np.pi) % (2 * np.pi) + np.pi
+
+    # Compute the difference between current facing angle and desired direction
+    angle_diff = desired_direction - facing_angle
+    angle_diff = (angle_diff + np.pi) % (2 * np.pi) - np.pi
+
+    # Set angular velocity proportional to angle difference
+    angular_velocity = angle_diff * 2.0  # Scaling factor
+
+    grid_world.actions[world_index, agent_index] = torch.tensor([desired_velocity, desired_direction, angular_velocity])
+
+    return grid_world.actions[world_index, agent_index]
+
+
 # Right now, the code simply increments player position by 1 each loop
 # the Player positions tensor is of shape, (num_worlds, num_players * 2)
 # Where each pair of 2 elements (ex. index 2 and index 3) correspond to the x and y position of a player
@@ -221,24 +253,38 @@ def draw_agents(screen, world, world_ball_position):
 print(grid_world.player_pos)
 
 frames = []
-for i in range(args.num_steps):
+for s in range(args.num_steps):
 
     if args.savevideo:
         frame_data = pygame.surfarray.array3d(screen)
         frames.append(frame_data.transpose((1, 0, 2)))  # Adjust to (width, height, channels)
 
-
-
     # set action tensor
     for j in range(num_worlds):
         for i in range(num_players):
             # of shape (num_worlds, num_players, 3) where 3 is [acceleration, direction of accel, angular accel]
-            grid_world.actions[j, i] = torch.tensor([5.0, i * 0.5, (i-5) * 0.2])
+            
+            # before: a, th, alpha
+            # grid_world.actions[j, i] = torch.tensor([5.0, i * 0.5, (i-5) * 0.2])
+            # grid_world.actions[j, i] = torch.tensor([0.0, i * 0.5, (i-5) * 0.2])
+
+            # what we want: v, th(moving direction), omega (angular velocity of facing)
+            if i == 0:
+                grid_world.actions[j,i] = goto_position(j,i,(0,0),10,grid_world)
+                if (s > 20):
+                    grid_world.choices[j,i] = torch.tensor([1])
+                else:
+                    grid_world.choices[j,i] = torch.tensor([0])
+            else: 
+                grid_world.actions[j, i] = torch.tensor([0.0, 0.0, 0.0])
+                grid_world.choices[j, i] = torch.tensor([0])
+            
     # Advance simulation across all worlds
     grid_world.step()
-    print(grid_world.player_pos)
+    st = time.time()
     print(grid_world.ball_pos)
     print(grid_world.who_holds)
+    print(s)
 
     if args.logs and not args.visualize:
         with open(args.pos_logs_path, 'ab') as pos_logs:
@@ -254,8 +300,12 @@ for i in range(args.num_steps):
 
         screen.blit(court_img, (0, 0)) 
         draw_agents(screen, agents, ballpos) 
-        pygame.display.flip() 
-        time.sleep(0.1)
+        pygame.display.flip()
+        et = time.time()
+        if (et - st < 0.1):
+            time.sleep(0.1 - (et - st))
+        else:
+            time.sleep(0.1)
 
 if args.savevideo and frames:
     # Set the filename with a timestamp
