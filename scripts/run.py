@@ -271,19 +271,19 @@ for s in range(args.num_steps):
             # what we want: v, th(moving direction), omega (angular velocity of facing)
             if i == 0:
                 grid_world.actions[j,i] = goto_position(j,i,(0,0),10,grid_world)
-                if (s > 20):
-                    grid_world.choices[j,i] = torch.tensor([1])
-                else:
-                    grid_world.choices[j,i] = torch.tensor([0])
             else: 
                 grid_world.actions[j, i] = torch.tensor([0.0, 0.0, 0.0])
-                grid_world.choices[j, i] = torch.tensor([0])
+            if ((s > 20) and (grid_world.who_holds[0][0] == i)):
+                grid_world.choices[j,i] = torch.tensor([1])
+            else:
+                grid_world.choices[j,i] = torch.tensor([0])
             
     # Advance simulation across all worlds
+    print(grid_world.choices)
     grid_world.step()
     st = time.time()
-    print(grid_world.ball_pos)
     print(grid_world.who_holds)
+    print(grid_world.choices)
     print(s)
 
     if args.logs and not args.visualize:
