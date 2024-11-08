@@ -78,6 +78,8 @@ for i in range(num_players):
 print(points)
 
 
+
+
 # Create simulator object (need to rename)
 grid_world = GridWorld(points, num_worlds, start_cell, end_cell, rewards, walls, enable_gpu_sim, 0)
 #grid_world.vis_world()
@@ -233,6 +235,9 @@ for i in range(args.num_steps):
     for j in range(num_worlds):
         for i in range(num_players):
             # of shape (num_worlds, num_players, 3) where 3 is [acceleration, direction of accel, angular accel]
+            
+            # before: a, th, alpha
+            # what we want: v, th(moving direction), omega (angular velocity of facing)
             grid_world.actions[j, i] = torch.tensor([5.0, i * 0.5, (i-5) * 0.2])
     # Advance simulation across all worlds
     grid_world.step()
