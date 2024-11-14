@@ -24,7 +24,6 @@ namespace madsimple {
 struct Manager::Impl {
     Config cfg;
     EpisodeManager *episodeMgr;
-    GridState *gridData;
 
     // Added courtData structure, which contains number of players, and array of players and their locations
     CourtState *courtData;
@@ -32,11 +31,9 @@ struct Manager::Impl {
     // Added court_state ot constructor, which gives input to courtData
     inline Impl(const Config &c,
                 EpisodeManager *ep_mgr,
-                GridState *grid_data,
                 CourtState *court_state)
         : cfg(c),
           episodeMgr(ep_mgr),
-          gridData(grid_data),
           courtData(court_state)
     {}
 
@@ -47,7 +44,7 @@ struct Manager::Impl {
                                 Span<const int64_t> dims) = 0;
 
     // Add CourtState to constructor
-    static inline Impl * init(const Config &cfg, const GridState &src_grid, const CourtState &src_players);
+    static inline Impl * init(const Config &cfg, const CourtState &src_players);
 };
 
 struct Manager::CPUImpl final : Manager::Impl {
@@ -58,10 +55,9 @@ struct Manager::CPUImpl final : Manager::Impl {
     inline CPUImpl(const Manager::Config &mgr_cfg,
                    const Sim::Config &sim_cfg,
                    EpisodeManager *episode_mgr,
-                   GridState *grid_data,
                    CourtState *court_data,
                    WorldInit *world_inits)
-        : Impl(mgr_cfg, episode_mgr, grid_data, court_data),
+        : Impl(mgr_cfg, episode_mgr, court_data),
           cpuExec({
                   .numWorlds = mgr_cfg.numWorlds,
                   .numExportedBuffers = (uint32_t)ExportID::NumExports,
@@ -71,7 +67,6 @@ struct Manager::CPUImpl final : Manager::Impl {
     // Free courtData
     inline virtual ~CPUImpl() final {
         delete episodeMgr;
-        free(gridData);
         free(courtData);
     }
 
@@ -96,10 +91,9 @@ struct Manager::GPUImpl final : Manager::Impl {
                    const Manager::Config &mgr_cfg,
                    const Sim::Config &sim_cfg,
                    EpisodeManager *episode_mgr,
-                   GridState *grid_data,
                    CourtState *court_data,
                    WorldInit *world_inits)
-        : Impl(mgr_cfg, episode_mgr, grid_data, court_data),
+        : Impl(mgr_cfg, episode_mgr, court_data),
           gpuExec({
                   .worldInitPtr = world_inits,
                   .numWorldInitBytes = sizeof(WorldInit),
@@ -121,7 +115,6 @@ struct Manager::GPUImpl final : Manager::Impl {
 
     inline virtual ~GPUImpl() final {
         REQ_CUDA(cudaFree(episodeMgr));
-        REQ_CUDA(cudaFree(gridData));
         REQ_CUDA(cudaFree(courtData));
     }
 
@@ -139,7 +132,6 @@ struct Manager::GPUImpl final : Manager::Impl {
 // Added CourtState to world initialization
 static HeapArray<WorldInit> setupWorldInitData(int64_t num_worlds,
                                                EpisodeManager *episode_mgr,
-                                               const GridState *grid,
                                                const CourtState *court)
 {
     HeapArray<WorldInit> world_inits(num_worlds);
@@ -147,7 +139,6 @@ static HeapArray<WorldInit> setupWorldInitData(int64_t num_worlds,
     for (int64_t i = 0; i < num_worlds; i++) {
         world_inits[i] = WorldInit {
             episode_mgr,
-            grid, 
             court,
         };
     }
@@ -157,10 +148,8 @@ static HeapArray<WorldInit> setupWorldInitData(int64_t num_worlds,
 
 // Added CourtState to this
 Manager::Impl * Manager::Impl::init(const Config &cfg,
-                                    const GridState &src_grid,
                                     const CourtState &src_court)
 {
-    static_assert(sizeof(GridState) % alignof(Cell) == 0);
 
     Sim::Config sim_cfg {
         .maxEpisodeLength = cfg.maxEpisodeLength,
@@ -170,24 +159,6 @@ Manager::Impl * Manager::Impl::init(const Config &cfg,
     switch (cfg.execMode) {
     case ExecMode::CPU: {
         EpisodeManager *episode_mgr = new EpisodeManager { 0 };
-
-        uint64_t num_cell_bytes =
-            sizeof(Cell) * src_grid.width * src_grid.height;
-
-        auto *grid_data =
-            (char *)malloc(sizeof(GridState) + num_cell_bytes);
-        Cell *cpu_cell_data = (Cell *)(grid_data + sizeof(GridState));
-
-        GridState *cpu_grid = (GridState *)grid_data;
-        *cpu_grid = GridState {
-            .cells = cpu_cell_data,
-            .startX = src_grid.startX,
-            .startY = src_grid.startY,
-            .width = src_grid.width,
-            .height = src_grid.height,
-        };
-
-        memcpy(cpu_cell_data, src_grid.cells, num_cell_bytes);
 
 
         // Block of code that mallocs the CourtState object, plus the players array it points to
@@ -209,9 +180,9 @@ Manager::Impl * Manager::Impl::init(const Config &cfg,
         memcpy(cpu_player_data, src_court.players, player_bytes);
 
         HeapArray<WorldInit> world_inits = setupWorldInitData(cfg.numWorlds,
-            episode_mgr, cpu_grid, cpu_court);
+            episode_mgr, cpu_court);
 
-        return new CPUImpl(cfg, sim_cfg, episode_mgr, cpu_grid, cpu_court, world_inits.data());
+        return new CPUImpl(cfg, sim_cfg, episode_mgr, cpu_court, world_inits.data());
     } break;
     case ExecMode::CUDA: {
         // I have not implemented in the CUDA for this section yet
@@ -225,25 +196,6 @@ Manager::Impl * Manager::Impl::init(const Config &cfg,
         // Set the current episode count to 0
         REQ_CUDA(cudaMemset(episode_mgr, 0, sizeof(EpisodeManager)));
 
-        uint64_t num_cell_bytes =
-            sizeof(Cell) * src_grid.width * src_grid.height;
-
-        auto *grid_data =
-            (char *)cu::allocGPU(sizeof(GridState) + num_cell_bytes);
-
-        Cell *gpu_cell_data = (Cell *)(grid_data + sizeof(GridState));
-        GridState grid_staging {
-            .cells = gpu_cell_data,
-            .startX = src_grid.startX,
-            .startY = src_grid.startY,
-            .width = src_grid.width,
-            .height = src_grid.height,
-        };
-
-        cudaMemcpy(grid_data, &grid_staging, sizeof(GridState),
-                   cudaMemcpyHostToDevice);
-        cudaMemcpy(gpu_cell_data, src_grid.cells, num_cell_bytes,
-                   cudaMemcpyHostToDevice);
 
         // Block of code that mallocs the CourtState object, plus the players array it points to
         uint64_t player_bytes = sizeof(Player) * src_court.numPlayers;
@@ -259,12 +211,11 @@ Manager::Impl * Manager::Impl::init(const Config &cfg,
             .numPlayers = src_court.numPlayers,
         };
 
-        GridState *gpu_grid = (GridState *)grid_data;
 
         HeapArray<WorldInit> world_inits = setupWorldInitData(cfg.numWorlds,
-            episode_mgr, gpu_grid, cpu_court);
+            episode_mgr, cpu_court);
 
-        return new GPUImpl(cu_ctx, cfg, sim_cfg, episode_mgr, gpu_grid, cpu_court,
+        return new GPUImpl(cu_ctx, cfg, sim_cfg, episode_mgr, cpu_court,
                            world_inits.data());
 #endif
     } break;
@@ -274,9 +225,8 @@ Manager::Impl * Manager::Impl::init(const Config &cfg,
 
 // Added initial conditions to manager
 Manager::Manager(const Config &cfg,
-                 const GridState &src_grid,
                  const CourtState &src_court)
-    : impl_(Impl::init(cfg, src_grid, src_court))
+    : impl_(Impl::init(cfg, src_court))
 {}
 
 Manager::~Manager() {}
@@ -284,12 +234,6 @@ Manager::~Manager() {}
 void Manager::step()
 {
     impl_->run();
-}
-
-Tensor Manager::resetTensor() const
-{
-    return impl_->exportTensor(ExportID::Reset, TensorElementType::Int32,
-                               {impl_->cfg.numWorlds, 1});
 }
 
 // Added new tensor playerTensor, that theoretically will hold [numWorlds, numPlayers, location] (unsure about this implementation)
@@ -303,24 +247,6 @@ Tensor Manager::actionTensor() const
 {
     return impl_->exportTensor(ExportID::Action, TensorElementType::Float32,
         {impl_->cfg.numWorlds, impl_->cfg.numPlayers, 3});
-}
-
-Tensor Manager::observationTensor() const
-{
-    return impl_->exportTensor(ExportID::GridPos, TensorElementType::Int32,
-        {impl_->cfg.numWorlds, 2});
-}
-
-Tensor Manager::rewardTensor() const
-{
-    return impl_->exportTensor(ExportID::Reward, TensorElementType::Float32,
-        {impl_->cfg.numWorlds, 1});
-}
-
-Tensor Manager::doneTensor() const
-{
-    return impl_->exportTensor(ExportID::Done, TensorElementType::Float32,
-        {impl_->cfg.numWorlds, 1});
 }
 
 Tensor Manager::ballTensor() const

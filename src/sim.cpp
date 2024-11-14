@@ -13,12 +13,7 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &)
 {
     base::registerTypes(registry);
 
-    registry.registerComponent<Reset>();
     registry.registerComponent<Action>();
-    registry.registerComponent<GridPos>();
-    registry.registerComponent<Reward>();
-    registry.registerComponent<Done>();
-    registry.registerComponent<CurStep>();
     registry.registerComponent<CourtPos>();
     registry.registerComponent<BallState>();
     registry.registerComponent<BallHeld>();
@@ -37,12 +32,8 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &)
     // registry.registerArchetype<PlayerAgent>();
 
     // Export tensors for pytorch
-    registry.exportColumn<Agent, Reset>((uint32_t)ExportID::Reset);
     registry.exportColumn<Agent, Action>((uint32_t)ExportID::Action);
-    registry.exportColumn<Agent, GridPos>((uint32_t)ExportID::GridPos);
     registry.exportColumn<Agent, CourtPos>((uint32_t)ExportID::CourtPos);
-    registry.exportColumn<Agent, Reward>((uint32_t)ExportID::Reward);
-    registry.exportColumn<Agent, Done>((uint32_t)ExportID::Done);
     registry.exportColumn<Agent, Decision>((uint32_t)ExportID::Choice);
 
     registry.exportColumn<BallArchetype, BallState>((uint32_t)ExportID::BallLoc);
@@ -50,13 +41,8 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &)
 
 }
 
-inline void tick(Engine &ctx,
+inline void takePlayerAction(Engine &ctx,
                  Action &action,
-                 Reset &reset,
-                 GridPos &grid_pos,
-                 Reward &reward,
-                 Done &done,
-                 CurStep &episode_step,
                  CourtPos &court_pos,
                  Decision &decision,
                  PlayerID &id, 
@@ -64,32 +50,11 @@ inline void tick(Engine &ctx,
                 //  
                 
 {
-    const GridState *grid = ctx.data().grid;
-
     // This hopefully gets the player data, not entirely sure what how to use it
     // This function is next to be worked on
     // Idea: use input actions (which is randomized) to update player positions instead of just randomly generating?
     // const CourtState *court = ctx.data().court;
-
-    GridPos new_pos = grid_pos;
-
     float dt = ctx.data().dt;
-    //Old action code
-    // switch (action) {
-    //     case Action::Up: {
-    //         new_pos.y += 1;
-    //     } break;
-    //     case Action::Down: {
-    //         new_pos.y -= 1;
-    //     } break;
-    //     case Action::Left: {
-    //         new_pos.x -= 1;
-    //     } break;
-    //     case Action::Right: {
-    //         new_pos.x += 1;
-    //     } break;
-    //     default: break;
-    // }
 
     switch (decision) {
         case Decision::Shoot: {
@@ -106,66 +71,15 @@ inline void tick(Engine &ctx,
 
     // action = Action::None;
 
-    if (new_pos.x < 0) {
-        new_pos.x = 0;
-    }
-
-    if (new_pos.x >= grid->width) {
-        new_pos.x = grid->width - 1;
-    }
-
-    if (new_pos.y < 0) {
-        new_pos.y = 0;
-    }
-
-    if (new_pos.y >= grid->height) {
-        new_pos.y = grid->height -1;
-    }
 
 
-    {
-        const Cell &new_cell = grid->cells[new_pos.y * grid->width + new_pos.x];
 
-        if ((new_cell.flags & CellFlag::Wall)) {
-            new_pos = grid_pos;
-        }
-    }
+    // bool episode_done = false;
+    // if (reset.resetNow != 0) {
+    //     reset.resetNow = 0;
+    //     episode_done = true;
+    // }
 
-    const Cell &cur_cell = grid->cells[new_pos.y * grid->width + new_pos.x];
-
-    bool episode_done = false;
-    if (reset.resetNow != 0) {
-        reset.resetNow = 0;
-        episode_done = true;
-    }
-
-    if ((cur_cell.flags & CellFlag::End)) {
-        episode_done = true;
-    }
-
-    uint32_t cur_step = episode_step.step;
-
-    if (cur_step == ctx.data().maxEpisodeLength - 1) {
-        episode_done = true;
-    }
-
-    if (episode_done) {
-        done.episodeDone = 1.f;
-
-        new_pos = GridPos {
-            grid->startY,
-            grid->startX,
-        };
-
-        episode_step.step = 0;
-    } else {
-        done.episodeDone = 0.f;
-        episode_step.step = cur_step + 1;
-    }
-
-    // Commit new position
-    grid_pos = new_pos;
-    reward.r = cur_cell.reward;
 
     // We cannot update court_pos directly, so we make a copy, update the copy, and then replace court_pos
     CourtPos new_player_pos = court_pos;
@@ -203,8 +117,7 @@ inline void tick(Engine &ctx,
 
 inline void balltick(Engine &ctx,
                 BallState &ball_state,
-                BallHeld &ball_held,
-                CurStep &episode_step)
+                BallHeld &ball_held)
                 //  
 {
     float dt = ctx.data().dt;
@@ -213,15 +126,15 @@ inline void balltick(Engine &ctx,
     auto players = ctx.singleton<AgentList>().e;
     float hoopx = -94.0 + 10.3346456;
     float hoopy = 0.0;
-    std::mt19937 gen;
+    std::mt19937 gen; // single funciton call getRandomNumber between 0 and 1 
     std::uniform_real_distribution<> dis(25.0, 35.0);
 
     if (ball_held.held != -1){
         Entity p = players[ball_held.held];
         if (ctx.get<PlayerStatus>(p).justShot){
             new_ball_state.v = (float)dis(gen);
-            if (ball_held.held > 4){
-                hoopx = 94.0 - 10.3346456;
+            if (ball_held.held > 4){ // inline helper functions
+                hoopx = 94.0 - 10.3346456; // any number, make a const in constants.hpp
             }
             new_ball_state.th = atan2(hoopy - new_ball_state.y, hoopx - new_ball_state.x);
             new_ball_state.x += new_ball_state.v * cos(new_ball_state.th) * dt;
@@ -245,8 +158,7 @@ inline void balltick(Engine &ctx,
             if (sqrt((hoopx - ball_state.x) * (hoopx - ball_state.x) + (hoopy - ball_state.y) * (hoopy - ball_state.y))
             <= sqrt((new_ball_state.x - ball_state.x) * (new_ball_state.x - ball_state.x) 
             + (new_ball_state.y - ball_state.y) * (new_ball_state.y - ball_state.y))) {
-                
-                
+                // did shot go in?
                 dis = std::uniform_real_distribution<>(0.0, 10.0);
                 new_ball_state.v = (float)dis(gen);
                 new_ball_held.whoShot = -1;
@@ -261,8 +173,6 @@ inline void balltick(Engine &ctx,
 
     ball_state = new_ball_state;
     ball_held = new_ball_held;
-    uint32_t cur_step = episode_step.step;
-    episode_step.step = cur_step + 1;
 }
 
 inline void postprocess(Engine &ctx,
@@ -278,11 +188,11 @@ void Sim::setupTasks(TaskGraphManager &taskgraph_mgr,
                      const Config &)
 {
     TaskGraphBuilder &builder = taskgraph_mgr.init(0);
-    auto tickfunc = builder.addToGraph<ParallelForNode<Engine, tick,
-        Action, Reset, GridPos, Reward, Done, CurStep, CourtPos, Decision, PlayerID,
+    auto tickfunc = builder.addToGraph<ParallelForNode<Engine, takePlayerAction,
+        Action, CourtPos, Decision, PlayerID,
         PlayerStatus>>({});
     auto ballfunc = builder.addToGraph<ParallelForNode<Engine, balltick,
-        BallState, BallHeld, CurStep>>({tickfunc}); 
+        BallState, BallHeld>>({tickfunc}); 
     builder.addToGraph<ParallelForNode<Engine, postprocess,
         PlayerStatus>>({ballfunc});
 }
@@ -290,7 +200,6 @@ void Sim::setupTasks(TaskGraphManager &taskgraph_mgr,
 Sim::Sim(Engine &ctx, const Config &cfg, const WorldInit &init)
     : WorldBase(ctx),
       episodeMgr(init.episodeMgr),
-      grid(init.grid),
       court(init.court),
       dt(0.1),
       maxEpisodeLength(cfg.maxEpisodeLength)
@@ -298,25 +207,17 @@ Sim::Sim(Engine &ctx, const Config &cfg, const WorldInit &init)
     ctx.singleton<BallReference>().theBall = ctx.makeEntity<BallArchetype>();
     ctx.get<BallState>(ctx.singleton<BallReference>().theBall) = BallState {0.0, 0.0, 0.0, 0.0};
     ctx.get<BallHeld>(ctx.singleton<BallReference>().theBall) = BallHeld {5, -1};
-    ctx.get<CurStep>(ctx.singleton<BallReference>().theBall).step = 0.0;
 
     for (int i = 0; i < court->numPlayers; i++){
         Entity agent = ctx.makeEntity<Agent>();
         ctx.get<Action>(agent) = Action {
             0.0, 0.0, 0.0,
         };
-        ctx.get<GridPos>(agent) = GridPos {
-            grid->startY,
-            grid->startX,
-        };
         ctx.get<CourtPos>(agent) = CourtPos {
             court->players[i].x, court->players[i].y, 
             court->players[i].th, court->players[i].v, 
             court->players[i].om, court->players[i].facing,
         };
-        ctx.get<Reward>(agent).r = 0.f;
-        ctx.get<Done>(agent).episodeDone = 0.f;
-        ctx.get<CurStep>(agent).step = 0;
         ctx.get<PlayerID>(agent).id = i;
         ctx.get<PlayerStatus>(agent) = {false, false};
         ctx.singleton<AgentList>().e[i] = agent;

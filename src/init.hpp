@@ -2,7 +2,6 @@
 
 #include <madrona/sync.hpp>
 
-#include "grid.hpp"
 #include "court.hpp"
 
 namespace madsimple {
@@ -13,7 +12,6 @@ struct EpisodeManager {
 
 struct WorldInit {
     EpisodeManager *episodeMgr;
-    const GridState *grid;
     const CourtState *court; // update initializer
 };
 

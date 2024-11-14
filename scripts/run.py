@@ -57,13 +57,6 @@ if args.use_gpu:
 
 dt = 0.1
 array_shape = [5,6]
-walls = np.zeros(array_shape)
-rewards = np.zeros(array_shape)
-walls[3, 2:] = 1
-start_cell = np.array([4,5])
-end_cell = np.array([[4,5]])
-rewards[4, 0] = -1
-rewards[4, 5] = 1
 
 # Creating array of player positions
 num_players = 10
@@ -83,7 +76,7 @@ print(points)
 
 
 # Create simulator object (need to rename)
-grid_world = GridWorld(points, num_worlds, start_cell, end_cell, rewards, walls, enable_gpu_sim, 0)
+grid_world = GridWorld(points, num_worlds, enable_gpu_sim, 0)
 #grid_world.vis_world()
 
 if args.logs:
