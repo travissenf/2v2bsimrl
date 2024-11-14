@@ -27,7 +27,6 @@ struct Sim : public madrona::WorldBase {
 
     float dt;
     EpisodeManager *episodeMgr;
-    const GridState *grid;
     const CourtState *court; // Add court to constructor
     uint32_t maxEpisodeLength;
 };
