@@ -35,7 +35,11 @@ class Simulation:
         self.num_worlds = self.args.num_worlds
         self.enable_gpu_sim = self.args.use_gpu
         self.grid_world = None
-        background_img = cv2.imread("warped_court.jpg")
+        background_img = cv2.imread("asset/warped_court.jpg")
+        # Initialize time and score
+        self.elapsed_time = 0.0  # Time in seconds
+        self.score = [0, 0]      # Score initialized at 0:0
+        self.show_details = False
 
         self.background_surface = pygame.surfarray.make_surface(
             np.transpose(cv2.cvtColor(background_img, cv2.COLOR_BGR2RGB), (1, 0, 2))
@@ -52,10 +56,10 @@ class Simulation:
 
     def _load_assets(self):
         # Load images and scale them
-        self.pacman_yellow = pygame.image.load("Pacman_yellow.png")
-        self.pacman_blue = pygame.image.load("Pacman_blue.png")
-        self.ball_image = pygame.image.load("ball.png")
-        self.court_img = pygame.image.load("court.png")
+        self.pacman_yellow = pygame.image.load("asset/Pacman_yellow.png")
+        self.pacman_blue = pygame.image.load("asset/Pacman_blue.png")
+        self.ball_image = pygame.image.load("asset/ball.png")
+        self.court_img = pygame.image.load("asset/court.png")
 
         self.pacman_yellow = pygame.transform.scale(self.pacman_yellow, (self.PLAYER_CIRCLE_SIZE * 4, self.PLAYER_CIRCLE_SIZE * 4))
         self.pacman_blue = pygame.transform.scale(self.pacman_blue, (self.PLAYER_CIRCLE_SIZE * 4, self.PLAYER_CIRCLE_SIZE * 4))
@@ -165,6 +169,45 @@ class Simulation:
         
         return worlds_whoholds
     
+    def display_time(self, screen):
+        """
+        Displays the elapsed time on the screen in format xx:xx.
+        """
+        # Convert elapsed time to minutes and seconds
+        total_seconds = int(self.elapsed_time)
+        minutes = total_seconds // 60
+        seconds = total_seconds % 60
+        time_str = f"{minutes:02d}:{seconds:02d}"  # Format as 'mm:ss'
+
+        # Choose font and render the text
+        font = pygame.font.SysFont(None, 40)
+        time_text = font.render(time_str, True, (255, 255, 255))  # White color
+
+        # Position the text on the screen (e.g., top center)
+        time_rect = time_text.get_rect(center=(self.SCREEN_WIDTH // 2, 20))
+
+        # Blit the text onto the screen
+        screen.blit(time_text, time_rect)
+
+    def display_score(self, screen):
+        """
+        Displays the current score on the screen in format x:x.
+        """
+        # Format the score
+        score_str = f"{self.score[0]}:{self.score[1]}"
+
+        # Choose font and render the text
+        font = pygame.font.SysFont(None, 40)
+        score_text = font.render(score_str, True, (255, 255, 255))  # White color
+
+        # Position the text on the screen (e.g., top left corner)
+        score_rect = score_text.get_rect(topleft=(20, 20))
+
+        # Blit the text onto the screen
+        screen.blit(score_text, score_rect)
+
+
+    
     def draw_pacman(self, screen, x, y, z, agent_image):
         """
         Draws the pacman image and its shadow on the screen.
@@ -231,46 +274,6 @@ class Simulation:
         # Return the transformed position for further use (e.g., to draw the agent ID)
         return x_t, y_t
 
-
-    # def draw_agents(self, screen, world, world_ball_position, view_angle=0):
-    #     agents = world[0]['agents']
-    #     ball_pos = world_ball_position[0]['ballpos']
-
-    #     for agent in agents:
-    #         # Using center circle as (0,0)
-    #         screen_x = self.SCREEN_WIDTH / 2 + agent['x']
-    #         screen_y = self.SCREEN_HEIGHT / 2 - agent['y']  # Y axis is opposite
-
-    #         # Choose image based on agent ID
-    #         if 0 <= agent['id'] <= 5:
-    #             agent_image = self.pacman_yellow
-    #         else:
-    #             agent_image = self.pacman_blue
-
-    #         # Rotation angle is the player's facing angle
-    #         rotated_image = pygame.transform.rotate(agent_image, np.degrees(agent['facing']))
-    #         rotated_rect = rotated_image.get_rect(center=(screen_x, screen_y))
-    #         screen.blit(rotated_image, rotated_rect.topleft)
-
-    #         line_length = agent['v']
-
-    #         movedir = agent['th'] 
-    #         movement_x = screen_x + line_length * np.cos(movedir)
-    #         movement_y = screen_y - line_length * np.sin(movedir) 
-
-    #         # This is the redline showing the player's moving direction, it's length represents the player's velocity magnitude
-    #         pygame.draw.line(screen, (255, 0, 0), (int(screen_x), int(screen_y)), (int(movement_x), int(movement_y)), 5)
-
-    #         # Showing ID
-    #         font = pygame.font.SysFont(None, 40)
-    #         text = font.render(str(agent['id']), True, (255, 255, 255))
-    #         screen.blit(text, (int(screen_x) - 10, int(screen_y) - 10))
-        
-    #     ball_screen_x = self.SCREEN_WIDTH / 2 + ball_pos['x']
-    #     ball_screen_y = self.SCREEN_HEIGHT / 2 - ball_pos['y']
-    #     ball_rect = self.ball_image.get_rect(center=(ball_screen_x, ball_screen_y))
-    #     screen.blit(self.ball_image, ball_rect.topleft)
-
     def draw_agents(self, screen, world, world_ball_position, view_angle):
         agents = world[0]['agents']
         ball_pos = world_ball_position[0]['ballpos']
@@ -292,6 +295,19 @@ class Simulation:
                 rotated_image = pygame.transform.rotate(agent_image, np.degrees(agent['facing']))
                 rotated_rect = rotated_image.get_rect(center=(screen_x, screen_y))
                 screen.blit(rotated_image, rotated_rect.topleft)
+
+                # Display parameters if show_details is True
+                if self.show_details:
+                    line1 = f"x:{agent['x']:.2f}, y:{agent['y']:.2f}, z:{agent.get('z', 0):.2f}"
+                    line2 = f"th:{agent['th']:.2f}, v:{agent['v']:.2f}, facing:{agent['facing']:.2f}"
+
+                    params_font = pygame.font.SysFont(None, 20)
+                    line1_render = params_font.render(line1, True, (255, 255, 255))
+                    line2_render = params_font.render(line2, True, (255, 255, 255))
+                    
+                    screen.blit(line1_render, (int(screen_x) - 50, int(screen_y) - 30))
+                    screen.blit(line2_render, (int(screen_x) - 50, int(screen_y) - 15))
+
 
                 line_length = agent['v']
 
@@ -335,6 +351,19 @@ class Simulation:
                 font = pygame.font.SysFont(None, 20)
                 text = font.render(str(agent['id']), True, (255, 255, 255))
                 screen.blit(text, (int(x_t) - 10, int(y_t) - 10))
+
+                # Display parameters if show_details is True
+                if self.show_details:
+                    line1 = f"x:{agent['x']:.2f}, y:{agent['y']:.2f}, z:{agent.get('z', 0):.2f}"
+                    line2 = f"th:{agent['th']:.2f}, v:{agent['v']:.2f}, facing:{agent['facing']:.2f}"
+
+                    params_font = pygame.font.SysFont(None, 20)
+                    line1_render = params_font.render(line1, True, (255, 255, 255))
+                    line2_render = params_font.render(line2, True, (255, 255, 255))
+                    
+                    screen.blit(line1_render, (int(x_t) - 50, int(y_t) - 30))
+                    screen.blit(line2_render, (int(x_t) - 50, int(y_t) - 15))
+
 
             # Drawing the ball
             # Assuming the ball image is stored in ball_image variable
@@ -451,6 +480,9 @@ class Simulation:
         agents_state[0]['timer'] = 0.0
 
         for idx in range(self.args.num_steps):
+            # Update elapsed time
+            self.elapsed_time += self.dt    
+
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.cleanup()
@@ -458,6 +490,9 @@ class Simulation:
                     if event.key == pygame.K_v:
                         # Toggle view_angle between 0 and 1
                         self.view_angle = 0 if self.view_angle == 1 else 1
+                    elif event.key == pygame.K_d:
+                        # Toggle show_details
+                        self.show_details = not self.show_details
 
             if self.args.savevideo:
                 frame_data = pygame.surfarray.array3d(self.screen)
@@ -539,6 +574,11 @@ class Simulation:
 
                 # Draw agents with the current view_angle
                 self.draw_agents(self.screen, agents, ballpos, self.view_angle)
+
+                # Display time and score
+                self.display_time(self.screen)
+                self.display_score(self.screen)
+
                 pygame.display.flip()
                 time.sleep(0.1)
 
@@ -546,7 +586,7 @@ class Simulation:
 
         if self.args.savevideo and self.frames:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            video_filename = f"simulation_{timestamp}.mp4"
+            video_filename = f"videos/simulation_{timestamp}.mp4"
             clip = ImageSequenceClip(self.frames, fps=10)
             clip.write_videofile(video_filename, codec="libx264")
 
