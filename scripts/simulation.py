@@ -27,6 +27,7 @@ class Simulation:
         # Constants
         self.PLAYER_CIRCLE_SIZE = 15
         self.SCREEN_WIDTH, self.SCREEN_HEIGHT = 940, 500
+        self.FEET_TO_PIXELS = 10.0  # 10 pixels per foot
         self.dt = 0.1
         self.num_players = 10
         self.players = []
@@ -71,7 +72,6 @@ class Simulation:
         self.ball_image_v = pygame.transform.scale(self.ball_image, (self.PLAYER_CIRCLE_SIZE * 1, self.PLAYER_CIRCLE_SIZE * 1))
 
     def initialize_simulation(self):
-
         # Initial player positions
         for i in range(self.num_players):
             self.points.append([(i - 5) * 5, (i - 5) * 5, 0, 0.0, 0.0, -np.pi])
@@ -92,10 +92,10 @@ class Simulation:
             for player_id in range(self.num_players): 
                 agent_id = player_id
                 # Extract x and y for the player
-                x = float(world_data[player_id][0]) * 5
-                y = float(world_data[player_id][1]) * 5
+                x = float(world_data[player_id][0])
+                y = float(world_data[player_id][1])
                 th = float(world_data[player_id][2])
-                v = float(world_data[player_id][3]) * 5
+                v = float(world_data[player_id][3])
                 facing = float(world_data[player_id][5])
                 
                 # Assign color based on player ID
@@ -128,10 +128,10 @@ class Simulation:
         
         for world_index, ball_data in enumerate(tensor):
 
-            x = float(ball_data[0]) *5
-            y = float(ball_data[1]) *5
+            x = float(ball_data[0])
+            y = float(ball_data[1])
             th = float(ball_data[2])
-            v = float(ball_data[3]) *5
+            v = float(ball_data[3])
 
             ball = {
                 'x': x,
@@ -273,8 +273,8 @@ class Simulation:
             # Original drawing method
             for agent in agents:
                 # Using center circle as (0,0)
-                screen_x = self.SCREEN_WIDTH / 2 + agent['x']
-                screen_y = self.SCREEN_HEIGHT / 2 - agent['y']  # Y axis is opposite
+                screen_x = self.SCREEN_WIDTH / 2 + agent['x']* self.FEET_TO_PIXELS
+                screen_y = self.SCREEN_HEIGHT / 2 - agent['y']* self.FEET_TO_PIXELS  # Y axis is opposite
 
                 # Choose image based on agent ID
                 if 0 <= agent['id'] <= 5:
@@ -315,8 +315,8 @@ class Simulation:
                 screen.blit(text, (int(screen_x) - 10, int(screen_y) - 10))
 
             # Drawing the ball
-            ball_screen_x = self.SCREEN_WIDTH / 2 + ball_pos['x']
-            ball_screen_y = self.SCREEN_HEIGHT / 2 - ball_pos['y']
+            ball_screen_x = self.SCREEN_WIDTH / 2 + ball_pos['x'] * self.FEET_TO_PIXELS
+            ball_screen_y = self.SCREEN_HEIGHT / 2 - ball_pos['y'] * self.FEET_TO_PIXELS
             ball_rect = self.ball_image.get_rect(center=(ball_screen_x, ball_screen_y))
             screen.blit(self.ball_image, ball_rect.topleft)
 
@@ -325,8 +325,8 @@ class Simulation:
             screen.blit(self.background_surface, (0, 0))
 
             for agent in agents:
-                x = agent['x'] + self.SCREEN_WIDTH/2
-                y = -agent['y'] + self.SCREEN_HEIGHT/3
+                x = agent['x'] * self.FEET_TO_PIXELS + self.SCREEN_WIDTH/2
+                y = -agent['y'] * self.FEET_TO_PIXELS + self.SCREEN_HEIGHT/3
                 z = agent.get('z', 0)  # Assuming z is available in agent data, default to 0 if not
 
                 # Choose pacman image based on agent ID
