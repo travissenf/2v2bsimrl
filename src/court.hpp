@@ -1,6 +1,5 @@
 #pragma once
 
-
 // New File, which delcares our Player struct and CourtState struct for internal data management
 // This is different than defining archetypes for actually running the madrona simulator
 namespace madsimple {

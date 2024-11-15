@@ -35,26 +35,4 @@ CourtPos updateCourtPosition(const CourtPos &current_pos, const Action &action) 
     return new_player_pos;
 }
 
-// BallState updateBallState(const BallState &current_ball, const BallHeld &ball_held, 
-//                           const madrona::Entity *players, const madrona::Engine &ctx, float dt) {
-//     // Implementation (same as suggested above)
-//     ...
-// }
-
-// float calculateDistance(float x1, float y1, float x2, float y2) {
-//     return sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
-// }
-
-// float generateRandomValue(float min_val, float max_val) {
-//     static std::mt19937 gen(std::random_device{}());
-//     std::uniform_real_distribution<> dist(min_val, max_val);
-//     return (float)dist(gen);
-// }
-
-// void resetBallState(BallState &ball_state, BallHeld &ball_held, float hoop_th) {
-//     ball_state.v = generateRandomValue(0.0f, 10.0f);
-//     ball_state.th = hoop_th + generateRandomValue(-M_PI / 2, M_PI / 2);
-//     ball_held.whoShot = -1;
-// }
-
 } 

@@ -15,9 +15,16 @@ constexpr double LEFT_HOOP_Y = 25.0;
 constexpr double RIGHT_HOOP_X = 88.75;
 constexpr double RIGHT_HOOP_Y = 25.0;
 
+constexpr double CENTER_X = 0.0;
+constexpr double CENTER_Y = 0.0;
+constexpr double CENTER_Z = 0.0;
+
 constexpr double GRAVITY = 32.1741;
 
 constexpr int ACTIVE_PLAYERS = 10;
+
+constexpr int PLAYER_STARTING_WITH_BALL = 5;
+constexpr int NOT_PREVIOUSLY_SHOT = -1;
 
 constexpr double D_T = 0.1;
 
