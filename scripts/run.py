@@ -19,6 +19,7 @@
 # arg_parser.add_argument('--num_worlds', type=int, default=1)
 # arg_parser.add_argument('--num_steps', type=int, default=1000)
 
+
 # arg_parser.add_argument('--use_gpu', type=bool, default=False)
 # arg_parser.add_argument('--pos_logs_path', type=str, default="pos_logs.bin")
 
@@ -55,6 +56,7 @@
 # if args.use_gpu:
 #     enable_gpu_sim = True
 
+
 # dt = 0.1
 # array_shape = [5,6]
 # walls = np.zeros(array_shape)
@@ -71,11 +73,14 @@
 
 # points = []
 
+
 # # initial player positions
 # for i in range(num_players):
 #     # x, y, th, v, angv, facingang
 #     # points.append([(i-5) * 5, (i-5) * 5, 0, 10.0, 1.0, -np.pi])
 #     points.append([(i-5) * 5, (i-5) * 5, 0, 0.0, 0.0, -np.pi])
+
+
 
 # print(points)
 
@@ -188,12 +193,15 @@
 #         else:
 #             agent_image = pacman_blue
 
+
 #         # Rotation angle is the player's facing angle
 #         rotated_image = pygame.transform.rotate(agent_image, np.degrees(agent['facing']))
 #         rotated_rect = rotated_image.get_rect(center=(screen_x, screen_y))
 #         screen.blit(rotated_image, rotated_rect.topleft)
 
+
 #         line_length = agent['v']
+
 
 #         movedir = agent['th'] 
 #         movement_x = screen_x + line_length * np.cos(movedir)
@@ -384,6 +392,7 @@
 #     # Set the filename with a timestamp
 #     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 #     video_filename = f"simulation_{timestamp}.mp4"
+
     
 #     # Set the frame rate (e.g., 10 FPS)
 #     clip = ImageSequenceClip(frames, fps=10)

@@ -7,20 +7,18 @@ namespace madsimple {
 using madrona::Entity;
 
 enum class ExportID : uint32_t {
-    Reset,
+    // Reset,
     Action,
-    GridPos,
-    Reward,
-    Done,
     CourtPos, // Added a player position archetype for sim
     NumExports,
     BallLoc,
     WhoHolds,
+    Choice,
 };
 
-struct Reset {
-    int32_t resetNow;
-};
+// struct Reset {
+//     int32_t resetNow;
+// };
 
 // movement action
 //      acceleration vector relative to current orientation
@@ -65,19 +63,16 @@ struct Reset {
 //     None,
 // };
 
-enum class Decision : int32_t {
+enum class Decision : int8_t {
     Move = 0, 
+    Shoot = 1,
+    None,
 };
 
 struct Action {
     float vdes;
     float thdes;
     float omdes;
-};
-
-struct GridPos {
-    int32_t y;
-    int32_t x;
 };
 
 // new court position component
@@ -95,20 +90,10 @@ struct BallReference {
    Entity theBall;
 };
 
-struct Reward {
-    float r;
-};
-
-struct Done {
-    float episodeDone;
-};
-
-struct CurStep {
-    uint32_t step;
-};
 
 struct PlayerStatus {
     bool hasBall;
+    bool justShot;
 };
 
 struct PlayerID {
@@ -125,8 +110,10 @@ struct BallState {
     float v;
 };
 
+
 struct BallHeld {
-    int8_t held;
+    int8_t held; // heldBy
+    int8_t whoShot;
 };
 
 struct AgentList {
@@ -134,20 +121,17 @@ struct AgentList {
 };
 
 struct Agent : public madrona::Archetype<
-    Reset,
     Action,
-    GridPos,
-    Reward,
-    Done,
-    CurStep,
-    CourtPos, 
-    PlayerID
+    // CurStep,  // make singleton
+    CourtPos,
+    PlayerID,
+    Decision, 
+    PlayerStatus
 > {};
 
 struct BallArchetype : public madrona::Archetype<
     BallState,
-    BallHeld,
-    CurStep
+    BallHeld
 > {};
 
 // new basketball player agent component
