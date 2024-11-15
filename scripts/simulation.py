@@ -72,22 +72,12 @@ class Simulation:
         self.ball_image_v = pygame.transform.scale(self.ball_image, (self.PLAYER_CIRCLE_SIZE * 1, self.PLAYER_CIRCLE_SIZE * 1))
 
     def initialize_simulation(self):
-        # Array shapes and rewards
-        # array_shape = [5, 6]
-        # walls = np.zeros(array_shape)
-        # rewards = np.zeros(array_shape)
-        # walls[3, 2:] = 1
-        # start_cell = np.array([4, 5])
-        # end_cell = np.array([[4, 5]])
-        # rewards[4, 0] = -1
-        # rewards[4, 5] = 1
-
         # Initial player positions
         for i in range(self.num_players):
             self.points.append([(i - 5) * 5, (i - 5) * 5, 0, 0.0, 0.0, -np.pi])
 
         # Create simulator object
-        self.grid_world = GridWorld(self.points, self.num_worlds, gpu_sim=self.enable_gpu_sim, gpu_id=0)
+        self.grid_world = GridWorld(self.points, self.num_worlds, self.enable_gpu_sim, 0)
 
         
     # Asumming tensor is (num_worlds, 2 * num_players)
