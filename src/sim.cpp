@@ -154,7 +154,7 @@ inline void tick(Engine &ctx,
     new_player_pos.y += new_player_pos.v * sin(new_player_pos.th) * dt;
     new_player_pos.facing += new_player_pos.om * dt;
 
-    action.vdes = std::max(action.vdes, (float)30.0);
+    action.vdes = std::min(action.vdes, (float)30.0);
     float dx = action.vdes * cos(action.thdes);
     float dy = action.vdes * sin(action.thdes);
 
