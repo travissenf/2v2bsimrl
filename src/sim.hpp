@@ -4,6 +4,7 @@
 #include <madrona/math.hpp>
 #include <madrona/custom_context.hpp>
 
+#include "consts.hpp"
 #include "types.hpp"
 #include "init.hpp"
 
