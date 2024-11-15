@@ -26,7 +26,7 @@ class Simulation:
 
         # Constants
         self.PLAYER_CIRCLE_SIZE = 15
-        self.SCREEN_WIDTH, self.SCREEN_HEIGHT = 940, 500
+        self.SCREEN_WIDTH, self.SCREEN_HEIGHT = 940, 688
         self.FEET_TO_PIXELS = 10.0  # 10 pixels per foot
         self.dt = 0.1
         self.num_players = 10
@@ -92,10 +92,10 @@ class Simulation:
             for player_id in range(self.num_players): 
                 agent_id = player_id
                 # Extract x and y for the player
-                x = float(world_data[player_id][0])
-                y = float(world_data[player_id][1])
+                x = float(world_data[player_id][0]) / 2
+                y = float(world_data[player_id][1])/2
                 th = float(world_data[player_id][2])
-                v = float(world_data[player_id][3])
+                v = float(world_data[player_id][3])/2
                 facing = float(world_data[player_id][5])
                 
                 # Assign color based on player ID
@@ -128,10 +128,10 @@ class Simulation:
         
         for world_index, ball_data in enumerate(tensor):
 
-            x = float(ball_data[0])
-            y = float(ball_data[1])
+            x = float(ball_data[0])/2
+            y = float(ball_data[1])/2
             th = float(ball_data[2])
-            v = float(ball_data[3])
+            v = float(ball_data[3])/2
 
             ball = {
                 'x': x,
@@ -481,13 +481,25 @@ class Simulation:
                     if event.key == pygame.K_v:
                         # Toggle view_angle between 0 and 1
                         self.view_angle = 0 if self.view_angle == 1 else 1
+                        # Adjust screen size based on the new view angle
+                        if self.view_angle == 0:
+                            self.SCREEN_WIDTH, self.SCREEN_HEIGHT = 940, 500
+                        elif self.view_angle == 1:
+                            self.SCREEN_WIDTH, self.SCREEN_HEIGHT = 940, 688
+                        
+                        # Update the screen display size
+                        self.screen = pygame.display.set_mode((self.SCREEN_WIDTH, self.SCREEN_HEIGHT))
+
                     elif event.key == pygame.K_d:
                         # Toggle show_details
                         self.show_details = not self.show_details
 
             if self.args.savevideo:
                 frame_data = pygame.surfarray.array3d(self.screen)
-                self.frames.append(frame_data.transpose((1, 0, 2)))  # Adjust to (width, height, channels)
+                frame_data = frame_data.transpose((1, 0, 2))
+                standard_size = (940, 688)
+                frame_data_resized = cv2.resize(frame_data, standard_size, interpolation=cv2.INTER_LINEAR)
+                self.frames.append(frame_data_resized)
 
             # Set action tensor
             for j in range(self.num_worlds):
