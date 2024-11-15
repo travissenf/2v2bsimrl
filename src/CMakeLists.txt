@@ -1,5 +1,5 @@
 set(SIMULATOR_SRCS
-    types.hpp sim.hpp sim.cpp
+    types.hpp sim.hpp sim.cpp helpers.hpp helpers.cpp
 )
 
 add_library(madrona_simple_ex_cpu_impl STATIC
