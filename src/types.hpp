@@ -7,66 +7,31 @@ namespace madsimple {
 using madrona::Entity;
 
 enum class ExportID : uint32_t {
-    // Reset,
     Action,
     CourtPos, // Added a player position archetype for sim
     NumExports,
+    // PlayerStatus,
     BallLoc,
     WhoHolds,
     Choice,
 };
 
-// struct Reset {
-//     int32_t resetNow;
-// };
+enum PlayerDecision {
+    MOVE,
+    SHOOT,
+    PASS
+};
 
-// movement action
-//      acceleration vector relative to current orientation
-//       <1, 0> should be in same direction as current orientation
-//      current position
-//      current heading angle
-//      current velocity
-//      current angular velocity (changes heading angle)
-//      hasBall
-// sim says:
-    // if player has ball, move ball according to player
-// action space:
-//      velocity change
-//      angular velocity change
-//      dribble
-//      pass
-//      shoot
-//  After basic actions above,
-//      rebound?
-//      blocks
-//      charges
+enum BallStatesPossibilities {
+    BALL_IN_LOOSE,
+    BALL_IN_PASS,
+    BALL_IN_SHOT
+};
 
-// Start hand crafting policies - 1 person
-//      Can hand craft policies to make game look more coherent
-//      Given this current state, player 1 should run to the ball, etc.
-//     
-// 2 people - do more of the simulator
-
-// Logic of how to do actions -- outside of madrona
-// can do this in python
-// we will have access to positions of players, position of ball, current game state
-// Officiating of the game and simulating of the game is inside madrona
-// Do the bare minimum and keep on going
-// player orientation
-
-// Old action class
-// enum class Action : int32_t {
-//     Up    = 0,
-//     Down  = 1,
-//     Left  = 2,
-//     Right = 3,
-//     None,
-// };
-
-enum class Decision : int8_t {
-    Move = 0, 
-    Shoot = 1,
-    None,
+struct PlayerStatus {
+    bool hasBall;
+    bool justShot; // TODO: do we need?
+    PlayerDecision playerDecision;
 };
 
 struct Action {
@@ -90,18 +55,9 @@ struct BallReference {
    Entity theBall;
 };
 
-
-struct PlayerStatus {
-    bool hasBall;
-    bool justShot;
-};
-
 struct PlayerID {
     int8_t id;
 };
-// struct OtherAgents {
-//     madrona::Entity e[consts::numAgents - 1];
-// };
 
 struct BallState {
     float x;
@@ -110,10 +66,10 @@ struct BallState {
     float v;
 };
 
-
-struct BallHeld {
-    int8_t held; // heldBy
+struct BallStatus {
+    int8_t heldBy;
     int8_t whoShot;
+    BallStatesPossibilities ballState;
 };
 
 struct AgentList {
@@ -125,20 +81,11 @@ struct Agent : public madrona::Archetype<
     // CurStep,  // make singleton
     CourtPos,
     PlayerID,
-    Decision, 
     PlayerStatus
 > {};
 
 struct BallArchetype : public madrona::Archetype<
     BallState,
-    BallHeld
+    BallStatus
 > {};
-
-// new basketball player agent component
-// struct PlayerAgent : public madrona::Archetype<
-//     Action,
-//     CourtPos,
-//     CurStep
-// > {};
-
 }

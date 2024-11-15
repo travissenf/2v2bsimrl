@@ -17,11 +17,10 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &)
     registry.registerComponent<Action>();
     registry.registerComponent<CourtPos>();
     registry.registerComponent<BallState>();
-    registry.registerComponent<BallHeld>();
+    registry.registerComponent<BallStatus>();
     registry.registerComponent<BallReference>();
     registry.registerComponent<PlayerID>();
     registry.registerComponent<AgentList>();
-    registry.registerComponent<Decision>();
     registry.registerComponent<PlayerStatus>();
 
     registry.registerArchetype<BallArchetype>();
@@ -35,31 +34,38 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &)
     // Export tensors for pytorch
     registry.exportColumn<Agent, Action>((uint32_t)ExportID::Action);
     registry.exportColumn<Agent, CourtPos>((uint32_t)ExportID::CourtPos);
-    registry.exportColumn<Agent, Decision>((uint32_t)ExportID::Choice);
+    registry.exportColumn<Agent, PlayerStatus>((uint32_t)ExportID::Choice);
 
     registry.exportColumn<BallArchetype, BallState>((uint32_t)ExportID::BallLoc);
-    registry.exportColumn<BallArchetype, BallHeld>((uint32_t)ExportID::WhoHolds);
+    registry.exportColumn<BallArchetype, BallStatus>((uint32_t)ExportID::WhoHolds);
 
 }
 
 inline void takePlayerAction(Engine &ctx,
                  Action &action,
                  CourtPos &court_pos,
-                 Decision &decision,
                  PlayerID &id, 
                  PlayerStatus &status)
                 //  
                 
 {
-    switch (decision) {
-        case Decision::Shoot: {
-            if (ctx.get<BallHeld>(ctx.singleton<BallReference>().theBall).held == id.id){
+    switch (status.playerDecision) {
+        case PlayerDecision::SHOOT: {
+            if (ctx.get<BallStatus>(ctx.singleton<BallReference>().theBall).heldBy == id.id){
                 PlayerStatus s = status;
                 s.hasBall = false;
                 s.justShot = true;
                 status = s;
             }
-        } break;
+            break;
+        } 
+        case PlayerDecision::PASS: {
+
+        }
+        case PlayerDecision::MOVE: {
+            court_pos = updateCourtPosition(court_pos, action);
+        }
+
         default: break;
     }
 
@@ -71,36 +77,36 @@ inline void takePlayerAction(Engine &ctx,
 
 
     action.vdes = std::min(action.vdes, (float)30.0);
-    court_pos = updateCourtPosition(court_pos, action);
+    // court_pos = updateCourtPosition(court_pos, action);
 
 }
 
 inline void balltick(Engine &ctx,
                 BallState &ball_state,
-                BallHeld &ball_held)
+                BallStatus &ball_held)
                 //  
 {
     float dt = ctx.data().dt;
     BallState new_ball_state = ball_state;
-    BallHeld new_ball_held = ball_held;
+    BallStatus new_ball_held = ball_held;
     auto players = ctx.singleton<AgentList>().e;
     float hoopx = LEFT_HOOP_X;
     float hoopy = LEFT_HOOP_Y;
     std::mt19937 gen; // single funciton call getRandomNumber between 0 and 1 
     std::uniform_real_distribution<> dis(15.0, 20.0);
 
-    if (ball_held.held != -1){
-        Entity p = players[ball_held.held];
+    if (ball_held.heldBy != -1){
+        Entity p = players[ball_held.heldBy];
         if (ctx.get<PlayerStatus>(p).justShot){
             new_ball_state.v = (float)dis(gen);
-            if (ball_held.held > 4){ // inline helper functions
+            if (ball_held.heldBy > 4){ // inline helper functions
                 hoopx = RIGHT_HOOP_X; // any number, make a const in constants.hpp
             }
             new_ball_state.th = atan2(hoopy - new_ball_state.y, hoopx - new_ball_state.x);
             new_ball_state.x += new_ball_state.v * cos(new_ball_state.th) * dt;
             new_ball_state.y += new_ball_state.v * sin(new_ball_state.th) * dt;
-            new_ball_held.whoShot = ball_held.held;
-            new_ball_held.held = -1;
+            new_ball_held.whoShot = ball_held.heldBy;
+            new_ball_held.heldBy = -1;
         } else {
             new_ball_state.x = ctx.get<CourtPos>(p).x;
             new_ball_state.y = ctx.get<CourtPos>(p).y;
@@ -149,10 +155,9 @@ void Sim::setupTasks(TaskGraphManager &taskgraph_mgr,
 {
     TaskGraphBuilder &builder = taskgraph_mgr.init(0);
     auto tickfunc = builder.addToGraph<ParallelForNode<Engine, takePlayerAction,
-        Action, CourtPos, Decision, PlayerID,
-        PlayerStatus>>({});
+        Action, CourtPos, PlayerID, PlayerStatus>>({});
     auto ballfunc = builder.addToGraph<ParallelForNode<Engine, balltick,
-        BallState, BallHeld>>({tickfunc}); 
+        BallState, BallStatus>>({tickfunc}); 
     builder.addToGraph<ParallelForNode<Engine, postprocess,
         PlayerStatus>>({ballfunc});
 }
@@ -161,17 +166,17 @@ Sim::Sim(Engine &ctx, const Config &cfg, const WorldInit &init)
     : WorldBase(ctx),
       episodeMgr(init.episodeMgr),
       court(init.court),
-      dt(0.1),
+      dt(D_T),
       maxEpisodeLength(cfg.maxEpisodeLength)
 {
     ctx.singleton<BallReference>().theBall = ctx.makeEntity<BallArchetype>();
-    ctx.get<BallState>(ctx.singleton<BallReference>().theBall) = BallState {0.0, 0.0, 0.0, 0.0};
-    ctx.get<BallHeld>(ctx.singleton<BallReference>().theBall) = BallHeld {5, -1};
+    ctx.get<BallState>(ctx.singleton<BallReference>().theBall) = BallState {CENTER_X, CENTER_Y, CENTER_Z,};
+    ctx.get<BallStatus>(ctx.singleton<BallReference>().theBall) = BallStatus {PLAYER_STARTING_WITH_BALL, NOT_PREVIOUSLY_SHOT};
 
     for (int i = 0; i < court->numPlayers; i++){
         Entity agent = ctx.makeEntity<Agent>();
         ctx.get<Action>(agent) = Action {
-            0.0, 0.0, 0.0,
+            CENTER_X, CENTER_Y, CENTER_Z,
         };
         ctx.get<CourtPos>(agent) = CourtPos {
             court->players[i].x, court->players[i].y, 
