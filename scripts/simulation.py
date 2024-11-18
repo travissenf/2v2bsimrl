@@ -26,7 +26,7 @@ class Simulation:
 
         # Constants
         self.PLAYER_CIRCLE_SIZE = 15
-        self.SCREEN_WIDTH, self.SCREEN_HEIGHT = 940, 688
+        self.SCREEN_WIDTH, self.SCREEN_HEIGHT = 940, 500
         self.FEET_TO_PIXELS = 10.0  # 10 pixels per foot
         self.dt = 0.1
         self.num_players = 10
@@ -53,7 +53,7 @@ class Simulation:
 
         # Load assets
         self._load_assets()
-        self.view_angle = 1
+        self.view_angle = 0
 
     def _load_assets(self):
         # Load images and scale them
@@ -448,17 +448,15 @@ class Simulation:
         self.grid_world.actions[world_index, agent_index] = torch.tensor([desired_velocity, desired_direction, angular_velocity])
 
         return False
+    
 
-    def run(self):
+    def initialize_run_in_line(self):
         # Initialize agent states
         agents_state = [{'state': 'waiting', 'timer': 0.0} for _ in range(self.num_players)]
-
-        # Initialize positions
         spacing = 10.0  # No interval between players
         line_start_x = -50.0  # Starting position at the free throw line (-10, 0)
         line_y = 0.0
 
-        # Set initial positions for the line
         for i in range(self.num_players):
             x = line_start_x + spacing * i
             y = line_y
@@ -470,10 +468,63 @@ class Simulation:
         agents_state[0]['state'] = 'at_free_throw_line'
         agents_state[0]['timer'] = 0.0
 
-        for idx in range(self.args.num_steps):
-            # Update elapsed time
-            self.elapsed_time += self.dt    
+        return agents_state
 
+
+    def run_in_line_policy(self, agents_state):
+        spacing = 10.0  # No interval between players
+        line_start_x = -50.0  # Starting position at the free throw line (-10, 0)
+        for j in range(self.num_worlds):
+            for agent_index in range(self.num_players):
+                state = agents_state[agent_index]['state']
+                timer = agents_state[agent_index]['timer']
+
+                if state == 'waiting':
+                    # The agent is in line, remain stationary
+                    self.grid_world.actions[0, agent_index] = torch.tensor([0.0, 0.0, 0.0])
+
+                elif state == 'at_free_throw_line':
+                    # The agent is at the free throw line, wait for 1 second
+                    agents_state[agent_index]['timer'] += self.dt
+                    self.grid_world.actions[0, agent_index] = torch.tensor([0.0, 0.0, 0.0])
+
+                    if agents_state[agent_index]['timer'] >= 1.0:
+                        # After 1 second, change state to 'going_up'
+                        agents_state[agent_index]['state'] = 'going_up'
+
+                elif state == 'going_up':
+                    goal_position = (0.0, 40.0)
+                    desired_velocity = 100.0
+                    if self.goto_position(j, agent_index, goal_position, desired_velocity):
+                        agents_state[agent_index]['state'] = 'returning_to_line'
+
+                elif state == 'returning_to_line':
+                    goal_x = line_start_x + spacing * (self.num_players - 1) + 10
+                    goal_position = (goal_x, 1.2585)
+                    desired_velocity = 100.0
+                    if self.goto_position(j, agent_index, goal_position, desired_velocity):
+                        agents_state[agent_index]['state'] = 'waiting'
+                        agents_state[agent_index]['completed'] = True
+                        agents_state[agent_index]['needs_scoot'] = True
+
+                for agent_index in range(self.num_players):
+                    if agents_state[agent_index].get('needs_scoot', False):
+                        scoot_distance = 10.0
+                        for i in range(self.num_players):
+                            x = self.grid_world.player_pos[0][i][0]
+                            self.grid_world.player_pos[0][i][0] = x - scoot_distance
+
+                        next_player_index = (agent_index + 1) % self.num_players
+                        agents_state[next_player_index]['state'] = 'at_free_throw_line'
+                        agents_state[next_player_index]['timer'] = 0.0
+                        agents_state[agent_index]['needs_scoot'] = False
+        return agents_state
+
+    def run(self):
+        # Initialize agent states
+        agents_state = self.initialize_run_in_line()
+
+        for idx in range(self.args.num_steps):
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.cleanup()
@@ -493,6 +544,11 @@ class Simulation:
                     elif event.key == pygame.K_d:
                         # Toggle show_details
                         self.show_details = not self.show_details
+                    
+                    elif event.key == pygame.K_p:
+                        continue
+            
+            agents_state = self.run_in_line_policy(agents_state)
 
             if self.args.savevideo:
                 frame_data = pygame.surfarray.array3d(self.screen)
@@ -500,53 +556,7 @@ class Simulation:
                 standard_size = (940, 688)
                 frame_data_resized = cv2.resize(frame_data, standard_size, interpolation=cv2.INTER_LINEAR)
                 self.frames.append(frame_data_resized)
-
-            # Set action tensor
-            for j in range(self.num_worlds):
-                for agent_index in range(self.num_players):
-                    state = agents_state[agent_index]['state']
-                    timer = agents_state[agent_index]['timer']
-
-                    if state == 'waiting':
-                        # The agent is in line, remain stationary
-                        self.grid_world.actions[0, agent_index] = torch.tensor([0.0, 0.0, 0.0])
-
-                    elif state == 'at_free_throw_line':
-                        # The agent is at the free throw line, wait for 1 second
-                        agents_state[agent_index]['timer'] += self.dt
-                        self.grid_world.actions[0, agent_index] = torch.tensor([0.0, 0.0, 0.0])
-
-                        if agents_state[agent_index]['timer'] >= 1.0:
-                            # After 1 second, change state to 'going_up'
-                            agents_state[agent_index]['state'] = 'going_up'
-
-                    elif state == 'going_up':
-                        goal_position = (0.0, 40.0)
-                        desired_velocity = 100.0
-                        if self.goto_position(j, agent_index, goal_position, desired_velocity):
-                            agents_state[agent_index]['state'] = 'returning_to_line'
-
-                    elif state == 'returning_to_line':
-                        goal_x = line_start_x + spacing * (self.num_players - 1) + 10
-                        goal_position = (goal_x, 1.2585)
-                        desired_velocity = 100.0
-                        if self.goto_position(j, agent_index, goal_position, desired_velocity):
-                            agents_state[agent_index]['state'] = 'waiting'
-                            agents_state[agent_index]['completed'] = True
-                            agents_state[agent_index]['needs_scoot'] = True
-
-                    for agent_index in range(self.num_players):
-                        if agents_state[agent_index].get('needs_scoot', False):
-                            scoot_distance = 10.0
-                            for i in range(self.num_players):
-                                x = self.grid_world.player_pos[0][i][0]
-                                self.grid_world.player_pos[0][i][0] = x - scoot_distance
-
-                            next_player_index = (agent_index + 1) % self.num_players
-                            agents_state[next_player_index]['state'] = 'at_free_throw_line'
-                            agents_state[next_player_index]['timer'] = 0.0
-                            agents_state[agent_index]['needs_scoot'] = False
-
+            
             # Advance simulation across all worlds
             self.grid_world.step()
 
@@ -585,6 +595,12 @@ class Simulation:
                 pygame.display.flip()
                 time.sleep(0.1)
 
+        if self.args.savevideo:
+            frame_data = pygame.surfarray.array3d(self.screen)
+            frame_data = frame_data.transpose((1, 0, 2))
+            standard_size = (940, 688)
+            frame_data_resized = cv2.resize(frame_data, standard_size, interpolation=cv2.INTER_LINEAR)
+            self.frames.append(frame_data_resized)
 
 
         if self.args.savevideo and self.frames:
