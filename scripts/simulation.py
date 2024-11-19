@@ -11,6 +11,10 @@ import time
 from datetime import datetime
 from moviepy.editor import ImageSequenceClip
 import cv2
+import tkinter as tk
+from tkinter import messagebox
+
+P_LOC_INDEX_TO_VAL = {0: "x", 1: "y", 2: "theta", 3: "velocity", 4:"angular v", 5: "facing angle"}
 
 class Simulation:
     def __init__(self):
@@ -25,7 +29,7 @@ class Simulation:
         self.args = arg_parser.parse_args()
 
         # Constants
-        self.PLAYER_CIRCLE_SIZE = 15
+        self.PLAYER_CIRCLE_SIZE = 12
         self.SCREEN_WIDTH, self.SCREEN_HEIGHT = 940, 500
         self.FEET_TO_PIXELS = 10.0  # 10 pixels per foot
         self.dt = 0.1
@@ -41,6 +45,8 @@ class Simulation:
         self.elapsed_time = 0.0  # Time in seconds
         self.score = [0, 0]      # Score initialized at 0:0
         self.show_details = False
+        self.is_paused = False
+        self.current_viewed_world = 0
 
         self.background_surface = pygame.surfarray.make_surface(
             np.transpose(cv2.cvtColor(background_img, cv2.COLOR_BGR2RGB), (1, 0, 2))
@@ -82,7 +88,7 @@ class Simulation:
         
     # Asumming tensor is (num_worlds, 2 * num_players)
     # Modified Jermaine's Code
-    def load_agents_from_tensor(self,tensor):
+    def load_agents_from_tensor(self, tensor):
         worlds_agents = []
         
         for world_index, world_data in enumerate(tensor):
@@ -92,10 +98,10 @@ class Simulation:
             for player_id in range(self.num_players): 
                 agent_id = player_id
                 # Extract x and y for the player
-                x = float(world_data[player_id][0]) / 2
-                y = float(world_data[player_id][1])/2
+                x = float(world_data[player_id][0])
+                y = float(world_data[player_id][1])
                 th = float(world_data[player_id][2])
-                v = float(world_data[player_id][3])/2
+                v = float(world_data[player_id][3])
                 facing = float(world_data[player_id][5])
                 
                 # Assign color based on player ID
@@ -108,7 +114,7 @@ class Simulation:
                 
                 # Create agent dictionary
                 agent = {
-                    'id': agent_id + 1,  # Increment ID by 1
+                    'id': agent_id,  # Increment ID by 1
                     'x': x,
                     'y': y,
                     'th':th,
@@ -128,10 +134,10 @@ class Simulation:
         
         for world_index, ball_data in enumerate(tensor):
 
-            x = float(ball_data[0])/2
-            y = float(ball_data[1])/2
+            x = float(ball_data[0])
+            y = float(ball_data[1])
             th = float(ball_data[2])
-            v = float(ball_data[3])/2
+            v = float(ball_data[3])
 
             ball = {
                 'x': x,
@@ -277,7 +283,7 @@ class Simulation:
                 screen_y = self.SCREEN_HEIGHT / 2 - agent['y']* self.FEET_TO_PIXELS  # Y axis is opposite
 
                 # Choose image based on agent ID
-                if 0 <= agent['id'] <= 5:
+                if 0 <= agent['id'] < 5:
                     agent_image = self.pacman_yellow
                 else:
                     agent_image = self.pacman_blue
@@ -430,7 +436,7 @@ class Simulation:
         desired_direction = np.arctan2(dy, dx)
 
         # Stop early if reaches goal already
-        if v/2 < np.hypot(abs(dx),abs(dy)) < 5*v/6 :
+        if 2*v/8 < np.hypot(abs(dx),abs(dy)) < 3*v/8 :
             print("Yes, reached!")
             self.grid_world.actions[world_index, agent_index] = torch.tensor([0, 0, 0])
             return True
@@ -453,8 +459,8 @@ class Simulation:
     def initialize_run_in_line(self):
         # Initialize agent states
         agents_state = [{'state': 'waiting', 'timer': 0.0} for _ in range(self.num_players)]
-        spacing = 10.0  # No interval between players
-        line_start_x = -50.0  # Starting position at the free throw line (-10, 0)
+        spacing = 5.0  # No interval between players
+        line_start_x = -28.0  # Starting position at the free throw line (-10, 0)
         line_y = 0.0
 
         for i in range(self.num_players):
@@ -472,8 +478,8 @@ class Simulation:
 
 
     def run_in_line_policy(self, agents_state):
-        spacing = 10.0  # No interval between players
-        line_start_x = -50.0  # Starting position at the free throw line (-10, 0)
+        spacing = 5.0  # No interval between players
+        line_start_x = -28.0  # Starting position at the free throw line (-10, 0)
         for j in range(self.num_worlds):
             for agent_index in range(self.num_players):
                 state = agents_state[agent_index]['state']
@@ -493,15 +499,15 @@ class Simulation:
                         agents_state[agent_index]['state'] = 'going_up'
 
                 elif state == 'going_up':
-                    goal_position = (0.0, 40.0)
-                    desired_velocity = 100.0
+                    goal_position = (0.0, 20.0)
+                    desired_velocity = 30.0
                     if self.goto_position(j, agent_index, goal_position, desired_velocity):
                         agents_state[agent_index]['state'] = 'returning_to_line'
 
                 elif state == 'returning_to_line':
-                    goal_x = line_start_x + spacing * (self.num_players - 1) + 10
-                    goal_position = (goal_x, 1.2585)
-                    desired_velocity = 100.0
+                    goal_x = line_start_x + spacing * (self.num_players - 1) + spacing
+                    goal_position = (goal_x, 0.625)
+                    desired_velocity = 30.0
                     if self.goto_position(j, agent_index, goal_position, desired_velocity):
                         agents_state[agent_index]['state'] = 'waiting'
                         agents_state[agent_index]['completed'] = True
@@ -509,7 +515,7 @@ class Simulation:
 
                 for agent_index in range(self.num_players):
                     if agents_state[agent_index].get('needs_scoot', False):
-                        scoot_distance = 10.0
+                        scoot_distance = 5.0
                         for i in range(self.num_players):
                             x = self.grid_world.player_pos[0][i][0]
                             self.grid_world.player_pos[0][i][0] = x - scoot_distance
@@ -519,6 +525,39 @@ class Simulation:
                         agents_state[next_player_index]['timer'] = 0.0
                         agents_state[agent_index]['needs_scoot'] = False
         return agents_state
+
+
+    def open_player_input_window(self, player_id):
+        def on_ok():
+            try:
+                # Read and validate inputs
+                values = [float(entry.get()) for entry in entries]
+                for i in range(len(values)):
+                    self.grid_world.player_pos[self.current_viewed_world][player_id][i] = values[i]
+                # self.float_values = values  # Store the values
+                popup.destroy()  # Close the popup
+            except ValueError:
+                messagebox.showerror("Input Error", "Please enter valid float values!")
+
+        # Create the Tkinter popup window
+        popup = tk.Tk()
+        popup.title("Enter Float Values")
+
+        tk.Label(popup, text="Enter 6 float values:").grid(row=0, column=0, columnspan=2, pady=10)
+
+        entries = []
+        for i in range(6):
+            tk.Label(popup, text=f"{P_LOC_INDEX_TO_VAL[i]}: ").grid(row=i+1, column=0, padx=10, pady=5)
+            entry = tk.Entry(popup)
+            entry.insert(0, str(self.grid_world.player_pos[self.current_viewed_world][player_id][i].item()))
+            entry.grid(row=i+1, column=1, padx=10, pady=5)
+            entries.append(entry)
+
+        tk.Button(popup, text="OK", command=on_ok).grid(row=7, column=0, columnspan=2, pady=10)
+
+        popup.mainloop()
+
+
 
     def run(self):
         # Initialize agent states
@@ -546,8 +585,53 @@ class Simulation:
                         self.show_details = not self.show_details
                     
                     elif event.key == pygame.K_p:
-                        continue
+                        self.is_paused = not self.is_paused
+
+                    elif event.key == pygame.K_0:
+                        # Open popup for float input
+                        self.open_player_input_window(0)
+
+                    elif event.key == pygame.K_1:
+                        # Open popup for float input
+                        self.open_player_input_window(1)
+
+                    elif event.key == pygame.K_2:
+                        # Open popup for float input
+                        self.open_player_input_window(2)
+
+                    elif event.key == pygame.K_3:
+                        # Open popup for float input
+                        self.open_player_input_window(3)
+
+                    elif event.key == pygame.K_4:
+                        # Open popup for float input
+                        self.open_player_input_window(4)
+
+                    elif event.key == pygame.K_5:
+                        # Open popup for float input
+                        self.open_player_input_window(5)
+
+                    elif event.key == pygame.K_6:
+                        # Open popup for float input
+                        self.open_player_input_window(6)
+
+                    elif event.key == pygame.K_7:
+                        # Open popup for float input
+                        self.open_player_input_window(7)
+
+                    elif event.key == pygame.K_8:
+                        # Open popup for float input
+                        self.open_player_input_window(8)
+
+                    elif event.key == pygame.K_9:
+                        # Open popup for float input
+                        self.open_player_input_window(9)
+
             
+            if self.is_paused:
+                continue
+
+
             agents_state = self.run_in_line_policy(agents_state)
 
             if self.args.savevideo:

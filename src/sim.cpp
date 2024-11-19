@@ -49,6 +49,8 @@ inline void takePlayerAction(Engine &ctx,
                 //  
                 
 {
+    action.vdes = std::min(action.vdes, (float)30.0);
+
     switch (status.playerDecision) {
         case PlayerDecision::SHOOT: {
             if (ctx.get<BallStatus>(ctx.singleton<BallReference>().theBall).heldBy == id.id){
@@ -76,7 +78,7 @@ inline void takePlayerAction(Engine &ctx,
     // }
 
 
-    action.vdes = std::min(action.vdes, (float)30.0);
+    
     // court_pos = updateCourtPosition(court_pos, action);
 
 }
@@ -98,16 +100,12 @@ inline void balltick(Engine &ctx,
     if (ball_held.heldBy != -1){
         Entity p = players[ball_held.heldBy];
         if (ctx.get<PlayerStatus>(p).justShot){
-            new_ball_state.v = (float)dis(gen);
-            if (ball_held.heldBy > 4){ // inline helper functions
-                hoopx = RIGHT_HOOP_X; // any number, make a const in constants.hpp
-            }
-            new_ball_state.th = atan2(hoopy - new_ball_state.y, hoopx - new_ball_state.x);
-            new_ball_state.x += new_ball_state.v * cos(new_ball_state.th) * dt;
-            new_ball_state.y += new_ball_state.v * sin(new_ball_state.th) * dt;
+            new_ball_state = updateShotBallState(new_ball_state, new_ball_held);
             new_ball_held.whoShot = ball_held.heldBy;
             new_ball_held.heldBy = -1;
         } else {
+
+            // ball updates with held player
             new_ball_state.x = ctx.get<CourtPos>(p).x;
             new_ball_state.y = ctx.get<CourtPos>(p).y;
             new_ball_state.v = ctx.get<CourtPos>(p).v;

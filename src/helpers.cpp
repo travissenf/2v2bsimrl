@@ -21,12 +21,12 @@ CourtPos updateCourtPosition(const CourtPos &current_pos, const Action &action) 
 
     float dist = sqrt(lx * lx + ly * ly);
 
-    if (dist <= 20.0 * D_T){
+    if (dist <= MAX_V_CHANGE * D_T){
         new_player_pos.v = action.vdes;
         new_player_pos.th = action.thdes;
     } else {
-        ax += ((20.0 * D_T) / dist) * lx;
-        ay += ((20.0 * D_T) / dist) * ly;
+        ax += ((MAX_V_CHANGE * D_T) / dist) * lx;
+        ay += ((MAX_V_CHANGE * D_T) / dist) * ly;
         new_player_pos.v = sqrt(ax * ax + ay * ay);
         new_player_pos.th = atan2(ay, ax);
     }
@@ -34,5 +34,24 @@ CourtPos updateCourtPosition(const CourtPos &current_pos, const Action &action) 
     // replace court_pos with our new positions
     return new_player_pos;
 }
+
+BallState updateShotBallState(const BallState &current_ball, const BallStatus &ball_status){
+    std::mt19937 gen;
+    std::uniform_real_distribution<> dis(15.0, 20.0);
+    BallState new_ball_state = current_ball;
+    new_ball_state.v = (float)dis(gen);
+
+    if (ball_status.heldBy > 4){ // inline helper functions
+        new_ball_state.th = atan2(RIGHT_HOOP_Y - new_ball_state.y, RIGHT_HOOP_X - new_ball_state.x); // any number, make a const in constants.hpp
+    } else {
+        new_ball_state.th = atan2(LEFT_HOOP_Y - new_ball_state.y, LEFT_HOOP_X - new_ball_state.x);
+    }
+    
+    new_ball_state.x += new_ball_state.v * cos(new_ball_state.th) * D_T;
+    new_ball_state.y += new_ball_state.v * sin(new_ball_state.th) * D_T;
+    return new_ball_state;
+}
+
+
 
 } 
