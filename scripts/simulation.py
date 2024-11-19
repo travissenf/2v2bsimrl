@@ -13,8 +13,12 @@ from moviepy.editor import ImageSequenceClip
 import cv2
 import tkinter as tk
 from tkinter import messagebox
+import json
 
 P_LOC_INDEX_TO_VAL = {0: "x", 1: "y", 2: "theta", 3: "velocity", 4:"angular v", 5: "facing angle"}
+P_LOC_VAL_TO_INDEX = {"x": 0, "y": 1, "theta": 2, "velocity": 3, "angular v": 4, "facing angle": 5}
+
+B_LOC_INDEX_TO_VAL = {0: "x", 1: "y", 2: "theta", 3: "velocity",}
 
 class Simulation:
     def __init__(self):
@@ -26,6 +30,7 @@ class Simulation:
         arg_parser.add_argument('--use_gpu', type=bool, default=False)
         arg_parser.add_argument('--pos_logs_path', type=str, default="pos_logs.bin")
         arg_parser.add_argument('--savevideo', action='store_true', help="Save each frame as an image for video creation")
+        arg_parser.add_argument('--load_state', type=str, help="Load initial state from a JSON file")
         self.args = arg_parser.parse_args()
 
         # Constants
@@ -546,7 +551,7 @@ class Simulation:
         tk.Label(popup, text="Enter 6 float values:").grid(row=0, column=0, columnspan=2, pady=10)
 
         entries = []
-        for i in range(6):
+        for i in range(self.grid_world.player_pos[self.current_viewed_world][0].shape[0]):
             tk.Label(popup, text=f"{P_LOC_INDEX_TO_VAL[i]}: ").grid(row=i+1, column=0, padx=10, pady=5)
             entry = tk.Entry(popup)
             entry.insert(0, str(self.grid_world.player_pos[self.current_viewed_world][player_id][i].item()))
@@ -557,13 +562,38 @@ class Simulation:
 
         popup.mainloop()
 
+    def save_game_state(self, output):
+        players_data = []
+        for i in range(self.grid_world.player_pos[self.current_viewed_world].shape[0]):
+            data = {"id": i}
+            for j in range(self.grid_world.player_pos[self.current_viewed_world][0].shape[0]):
+                data[f"{P_LOC_INDEX_TO_VAL[j]}"] = self.grid_world.player_pos[self.current_viewed_world][i][j].item()
+            players_data.append(data)
+        
+        ball_data = {}
+        for i in range(self.grid_world.ball_pos[self.current_viewed_world].shape[0]):
+            ball_data[f"{B_LOC_INDEX_TO_VAL[i]}"] = self.grid_world.ball_pos[self.current_viewed_world][i].item()
 
+        ball_data["who shot"] = self.grid_world.who_holds[self.current_viewed_world][1].item()
+        ball_data["who holds"] = self.grid_world.who_holds[self.current_viewed_world][0].item()
+
+        game_state = {
+            "players": players_data,
+            "ball": ball_data
+        }
+        
+        try:
+            with open(output, 'w') as file:
+                json.dump(game_state, file, indent=4)
+            print(f"Game state has been written to {output}")
+        except Exception as e:
+            print(f"An error occurred while saving the file: {e}")
 
     def run(self):
         # Initialize agent states
         agents_state = self.initialize_run_in_line()
-
-        for idx in range(self.args.num_steps):
+        idx = 0
+        while (idx < self.args.num_steps):
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.cleanup()
@@ -626,6 +656,15 @@ class Simulation:
                     elif event.key == pygame.K_9:
                         # Open popup for float input
                         self.open_player_input_window(9)
+                    
+                    elif event.key == pygame.K_s:
+                        output_file = "gamestates/" + input("Enter the filename to save the JSON (e.g., 'game_state'): ").strip() + ".json"
+
+                        # Default filename if the user doesn't enter anything
+                        if not output_file:
+                            output_file = "gamestates/game_state.json"
+
+                        self.save_game_state(output_file)
 
             
             if self.is_paused:
@@ -678,6 +717,7 @@ class Simulation:
 
                 pygame.display.flip()
                 time.sleep(0.1)
+            idx += 1
 
         if self.args.savevideo:
             frame_data = pygame.surfarray.array3d(self.screen)
