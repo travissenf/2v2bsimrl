@@ -114,7 +114,7 @@ class Simulation:
                 
                 # Create agent dictionary
                 agent = {
-                    'id': agent_id + 1,  # Increment ID by 1
+                    'id': agent_id,  # Increment ID by 1
                     'x': x,
                     'y': y,
                     'th':th,
@@ -283,7 +283,7 @@ class Simulation:
                 screen_y = self.SCREEN_HEIGHT / 2 - agent['y']* self.FEET_TO_PIXELS  # Y axis is opposite
 
                 # Choose image based on agent ID
-                if 0 <= agent['id'] <= 5:
+                if 0 <= agent['id'] < 5:
                     agent_image = self.pacman_yellow
                 else:
                     agent_image = self.pacman_blue
