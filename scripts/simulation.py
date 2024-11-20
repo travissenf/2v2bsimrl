@@ -26,7 +26,7 @@ class Simulation:
         arg_parser.add_argument('--visualize', action='store_true', help="Enable visualization")
         arg_parser.add_argument('--logs', action='store_true', help="Enable logging")
         arg_parser.add_argument('--num_worlds', type=int, default=1)
-        arg_parser.add_argument('--num_steps', type=int, default=300)
+        arg_parser.add_argument('--num_steps', type=int, default=1000)
         arg_parser.add_argument('--use_gpu', type=bool, default=False)
         arg_parser.add_argument('--pos_logs_path', type=str, default="pos_logs.bin")
         arg_parser.add_argument('--savevideo', action='store_true', help="Save each frame as an image for video creation")
@@ -51,6 +51,8 @@ class Simulation:
         self.score = [0, 0]      # Score initialized at 0:0
         self.show_details = False
         self.is_paused = False
+        self.manipulation_mode = False
+        self.selected_player = None
         self.current_viewed_world = 0
 
         self.background_surface = pygame.surfarray.make_surface(
@@ -598,7 +600,54 @@ class Simulation:
                 if event.type == pygame.QUIT:
                     self.cleanup()
                 elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_v:
+                    if event.key == pygame.K_m:
+                        self.manipulation_mode = not self.manipulation_mode
+                        self.is_paused = self.manipulation_mode
+                        if self.manipulation_mode:
+                            print("Entered manipulation mode.")
+                        else:
+                            print("Exited manipulation mode.")
+                            self.selected_player = None
+
+                    # Handle number keys '0' to '9' to select players
+                    if self.manipulation_mode and event.key >= pygame.K_0 and event.key <= pygame.K_9:
+                        self.selected_player = event.key - pygame.K_0  # Players 1-9 are indices 0-8
+                        print(f"Selected player {self.selected_player}")
+
+                    # Handle arrow keys to move the selected player
+                    elif self.manipulation_mode and self.selected_player is not None and event.key in [pygame.K_UP, pygame.K_DOWN, pygame.K_LEFT, pygame.K_RIGHT]:
+                        step_size = 3  # Adjust the step size as needed
+                        if event.key == pygame.K_UP:
+                            self.grid_world.player_pos[self.current_viewed_world][self.selected_player][1] += step_size
+                        elif event.key == pygame.K_DOWN:
+                            self.grid_world.player_pos[self.current_viewed_world][self.selected_player][1] -= step_size
+                        elif event.key == pygame.K_LEFT:
+                            self.grid_world.player_pos[self.current_viewed_world][self.selected_player][0] -= step_size
+                        elif event.key == pygame.K_RIGHT:
+                            self.grid_world.player_pos[self.current_viewed_world][self.selected_player][0] += step_size
+
+                        if self.args.visualize:
+                            # Clear the screen or blit background as needed
+                            if self.view_angle == 0:
+                                self.screen.blit(self.court_img, (0, 0))
+                            elif self.view_angle == 1:
+                                self.screen.blit(self.background_surface, (0, 0))
+
+                            # Load agents and ball positions
+                            agents = self.load_agents_from_tensor(self.grid_world.player_pos)
+                            ballpos = self.load_ballpos_from_tensor(self.grid_world.ball_pos)
+
+                            # Draw agents with the current view_angle
+                            self.draw_agents(self.screen, agents, ballpos, self.view_angle)
+
+                            # Display time and score
+                            self.display_time(self.screen)
+                            self.display_score(self.screen)
+
+                            # Update the display immediately
+                            pygame.display.flip()
+
+                    elif event.key == pygame.K_v:
                         # Toggle view_angle between 0 and 1
                         self.view_angle = 0 if self.view_angle == 1 else 1
                         # Adjust screen size based on the new view angle
@@ -617,45 +666,9 @@ class Simulation:
                     elif event.key == pygame.K_p:
                         self.is_paused = not self.is_paused
 
-                    elif event.key == pygame.K_0:
-                        # Open popup for float input
-                        self.open_player_input_window(0)
-
-                    elif event.key == pygame.K_1:
-                        # Open popup for float input
-                        self.open_player_input_window(1)
-
-                    elif event.key == pygame.K_2:
-                        # Open popup for float input
-                        self.open_player_input_window(2)
-
-                    elif event.key == pygame.K_3:
-                        # Open popup for float input
-                        self.open_player_input_window(3)
-
-                    elif event.key == pygame.K_4:
-                        # Open popup for float input
-                        self.open_player_input_window(4)
-
-                    elif event.key == pygame.K_5:
-                        # Open popup for float input
-                        self.open_player_input_window(5)
-
-                    elif event.key == pygame.K_6:
-                        # Open popup for float input
-                        self.open_player_input_window(6)
-
-                    elif event.key == pygame.K_7:
-                        # Open popup for float input
-                        self.open_player_input_window(7)
-
-                    elif event.key == pygame.K_8:
-                        # Open popup for float input
-                        self.open_player_input_window(8)
-
-                    elif event.key == pygame.K_9:
-                        # Open popup for float input
-                        self.open_player_input_window(9)
+                    # Modify Travis's code, read player's status
+                    elif event.key >= pygame.K_0 and event.key <= pygame.K_9 and not self.manipulation_mode:
+                        self.open_player_input_window(event.key - pygame.K_0)
                     
                     elif event.key == pygame.K_s:
                         output_file = "gamestates/" + input("Enter the filename to save the JSON (e.g., 'game_state'): ").strip() + ".json"
@@ -667,9 +680,17 @@ class Simulation:
                         self.save_game_state(output_file)
 
             
-            if self.is_paused:
-                continue
+            # if self.is_paused:
+            #     continue
 
+            if not self.is_paused:
+                agents_state = self.run_in_line_policy(agents_state)
+                self.grid_world.step()
+                idx += 1
+            else:
+                # When paused, ensure actions are zeroed out
+                self.grid_world.actions.zero_()
+                continue
 
             agents_state = self.run_in_line_policy(agents_state)
 
