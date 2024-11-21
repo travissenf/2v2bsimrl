@@ -1,0 +1,102 @@
+{
+    "players": [
+        {
+            "id": 0,
+            "x": 18.0,
+            "y": 3.0,
+            "theta": 3.140000104904175,
+            "velocity": 0.0,
+            "angular v": 0.0,
+            "facing angle": 3.0000109672546387
+        },
+        {
+            "id": 1,
+            "x": 38.0,
+            "y": -13.0,
+            "theta": 0.0,
+            "velocity": 0.0,
+            "angular v": 0.0,
+            "facing angle": 2.799999952316284
+        },
+        {
+            "id": 2,
+            "x": 31.0,
+            "y": 13.0,
+            "theta": 0.0,
+            "velocity": 0.0,
+            "angular v": 0.0,
+            "facing angle": 2.700000047683716
+        },
+        {
+            "id": 3,
+            "x": 32.0,
+            "y": -6.0,
+            "theta": 0.0,
+            "velocity": 0.0,
+            "angular v": 0.0,
+            "facing angle": 3.0999999046325684
+        },
+        {
+            "id": 4,
+            "x": 40.0,
+            "y": 5.5,
+            "theta": 0.0,
+            "velocity": 0.0,
+            "angular v": 0.0,
+            "facing angle": 3.0
+        },
+        {
+            "id": 5,
+            "x": 10.0,
+            "y": 4.0,
+            "theta": 0.0,
+            "velocity": 0.0,
+            "angular v": 0.0,
+            "facing angle": 0.0
+        },
+        {
+            "id": 6,
+            "x": 41.0,
+            "y": -23.0,
+            "theta": 0.0,
+            "velocity": 0.0,
+            "angular v": 0.0,
+            "facing angle": 2.4000000953674316
+        },
+        {
+            "id": 7,
+            "x": 30.0,
+            "y": 22.0,
+            "theta": 0.0,
+            "velocity": 0.0,
+            "angular v": 0.0,
+            "facing angle": 4.0
+        },
+        {
+            "id": 8,
+            "x": 28.0,
+            "y": -8.0,
+            "theta": 0.0,
+            "velocity": 0.0,
+            "angular v": 0.0,
+            "facing angle": 2.740000009536743
+        },
+        {
+            "id": 9,
+            "x": 40.0,
+            "y": 10.0,
+            "theta": 0.0,
+            "velocity": 0.0,
+            "angular v": 0.0,
+            "facing angle": 3.25
+        }
+    ],
+    "ball": {
+        "x": 10.0,
+        "y": 4.0,
+        "theta": 0.0,
+        "velocity": 0.0,
+        "who shot": -1,
+        "who holds": 5
+    }
+}

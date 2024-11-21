@@ -30,7 +30,7 @@ class Simulation:
         arg_parser.add_argument('--use_gpu', type=bool, default=False)
         arg_parser.add_argument('--pos_logs_path', type=str, default="pos_logs.bin")
         arg_parser.add_argument('--savevideo', action='store_true', help="Save each frame as an image for video creation")
-        arg_parser.add_argument('--load_state', type=str, help="Load initial state from a JSON file")
+        arg_parser.add_argument('--load_state', type=str, default=None, help="Load initial state json file from gamestates folder")
         self.args = arg_parser.parse_args()
 
         # Constants
@@ -591,10 +591,38 @@ class Simulation:
         except Exception as e:
             print(f"An error occurred while saving the file: {e}")
 
+    def load_from_json(self, input_path):
+        try:
+            with open(input_path, 'r') as file:
+                game_state = json.load(file)
+            print(f"Game state has been loaded from {input_path}")
+        except Exception as e:
+            print(f"An error occurred while loading the file: {e}")
+            return
+        
+        # Load players' data
+        num_players = len(game_state["players"])
+        player_pos_shape = self.grid_world.player_pos[self.current_viewed_world].shape
+        for i in range(num_players):
+            for j in range(player_pos_shape[1]):
+                key = P_LOC_INDEX_TO_VAL[j]
+                self.grid_world.player_pos[self.current_viewed_world][i][j] = game_state["players"][i][key]
+
+        # Load ball data
+        for i in range(self.grid_world.ball_pos[self.current_viewed_world].shape[0]):
+            key = B_LOC_INDEX_TO_VAL[i]
+            self.grid_world.ball_pos[self.current_viewed_world][i] = game_state["ball"][key]
+        
+        self.grid_world.who_holds[self.current_viewed_world][0] = game_state["ball"]["who holds"]
+        self.grid_world.who_holds[self.current_viewed_world][1] = game_state["ball"]["who shot"]
+
     def run(self):
         # Initialize agent states
         agents_state = self.initialize_run_in_line()
         idx = 0
+        if (self.args.load_state is not None):
+            self.load_from_json("gamestates/" + self.args.load_state)
+        
         while (idx < self.args.num_steps):
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -602,7 +630,6 @@ class Simulation:
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_m:
                         self.manipulation_mode = not self.manipulation_mode
-                        self.is_paused = self.manipulation_mode
                         if self.manipulation_mode:
                             print("Entered manipulation mode.")
                         else:
@@ -669,6 +696,27 @@ class Simulation:
                     # Modify Travis's code, read player's status
                     elif event.key >= pygame.K_0 and event.key <= pygame.K_9 and not self.manipulation_mode:
                         self.open_player_input_window(event.key - pygame.K_0)
+
+                        if self.args.visualize:
+                            # Clear the screen or blit background as needed
+                            if self.view_angle == 0:
+                                self.screen.blit(self.court_img, (0, 0))
+                            elif self.view_angle == 1:
+                                self.screen.blit(self.background_surface, (0, 0))
+
+                            # Load agents and ball positions
+                            agents = self.load_agents_from_tensor(self.grid_world.player_pos)
+                            ballpos = self.load_ballpos_from_tensor(self.grid_world.ball_pos)
+
+                            # Draw agents with the current view_angle
+                            self.draw_agents(self.screen, agents, ballpos, self.view_angle)
+
+                            # Display time and score
+                            self.display_time(self.screen)
+                            self.display_score(self.screen)
+
+                            # Update the display immediately
+                            pygame.display.flip()
                     
                     elif event.key == pygame.K_s:
                         output_file = "gamestates/" + input("Enter the filename to save the JSON (e.g., 'game_state'): ").strip() + ".json"
@@ -686,6 +734,7 @@ class Simulation:
             if not self.is_paused:
                 agents_state = self.run_in_line_policy(agents_state)
                 self.grid_world.step()
+                self.elapsed_time += 0.1
                 idx += 1
             else:
                 # When paused, ensure actions are zeroed out
@@ -701,8 +750,6 @@ class Simulation:
                 frame_data_resized = cv2.resize(frame_data, standard_size, interpolation=cv2.INTER_LINEAR)
                 self.frames.append(frame_data_resized)
             
-            # Advance simulation across all worlds
-            self.grid_world.step()
 
             if self.args.logs:
                 # Write log data to the file
@@ -738,7 +785,6 @@ class Simulation:
 
                 pygame.display.flip()
                 time.sleep(0.1)
-            idx += 1
 
         if self.args.savevideo:
             frame_data = pygame.surfarray.array3d(self.screen)
