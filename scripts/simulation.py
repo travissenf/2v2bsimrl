@@ -528,6 +528,7 @@ class Simulation(SimulationPolicies):
             self.load_from_json("gamestates/" + self.args.load_state)
         
         while (idx < self.args.num_steps):
+            passing = False # quick fix, please remove later
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.cleanup()
@@ -599,9 +600,7 @@ class Simulation(SimulationPolicies):
                         self.grid_world.choices[self.current_viewed_world][self.grid_world.who_holds[self.current_viewed_world][0]][0] = 1
 
                     elif event.key == pygame.K_a:
-                        # Toggle show_details
-                        self.get_velocity_angle_for_ball_pass(self.current_viewed_world, 
-                                                              self.grid_world.who_holds[self.current_viewed_world][0], 20.0)
+                        passing = True #quick fix, please remove later
                         self.grid_world.choices[self.current_viewed_world][self.grid_world.who_holds[self.current_viewed_world][0]][0] = 2
                     
                     elif event.key == pygame.K_p:
@@ -662,6 +661,9 @@ class Simulation(SimulationPolicies):
                 # #     self.grid_world.choices[self.current_viewed_world][agent_with_ball_id][0] = 0
                 
                 agents_state = self.run_policy(agents_state)
+                if passing:
+                    self.get_velocity_angle_for_ball_pass(self.current_viewed_world, 
+                                                              self.grid_world.who_holds[self.current_viewed_world][0], 20.0)
                 # print(" fffffffffffffff ")
                 
                 t = time.time()

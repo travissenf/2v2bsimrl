@@ -167,12 +167,16 @@ class SimulationPolicies:
         else:
             # Return a random number between 5 and 9 that is not agent_index
             possible_indices = [i for i in range(5, 10) if i != agent_index]
+        print(possible_indices)
     
         target_agent_index = random.choice(possible_indices)
+        print(target_agent_index)
 
         x, y = self.grid_world.player_pos[0][target_agent_index][0], self.grid_world.player_pos[0][target_agent_index][1]
-
+        print(x)
+        print(y)
         self.different_goto_position(world_index, agent_index, (x, y), desired_velocity)
+        print(self.grid_world.actions[world_index, agent_index])
 
     def run_around_and_defend_initialize(self):
         # Initialize agent states
