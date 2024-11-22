@@ -13,6 +13,7 @@ import cv2
 import tkinter as tk
 from tkinter import messagebox
 import json
+import random
 
 
 PLAYERS_PER_TEAM = 5
@@ -158,7 +159,20 @@ class SimulationPolicies:
         self.grid_world.actions[world_index, agent_index] = torch.tensor([desired_velocity, desired_direction, angular_velocity])
 
         return False
+        
+    def get_velocity_angle_for_ball_pass(self, world_index, agent_index, desired_velocity):
+        if agent_index < 5:
+            # Return a random number between 0 and 4 that is not agent_index
+            possible_indices = [i for i in range(5) if i != agent_index]
+        else:
+            # Return a random number between 5 and 9 that is not agent_index
+            possible_indices = [i for i in range(5, 10) if i != agent_index]
+    
+        target_agent_index = random.choice(possible_indices)
 
+        x, y = self.grid_world.player_pos[0][target_agent_index][0], self.grid_world.player_pos[0][target_agent_index][1]
+
+        self.different_goto_position(world_index, agent_index, (x, y), desired_velocity)
 
     def run_around_and_defend_initialize(self):
         # Initialize agent states
@@ -193,7 +207,9 @@ class SimulationPolicies:
         for j in range(self.num_worlds):
             for agent_index in range(self.num_players):
                 if (self.grid_world.who_holds[self.current_viewed_world][0].item() != -1):
-                    if (self.grid_world.who_holds[self.current_viewed_world][0].item() // PLAYERS_PER_TEAM == agent_index // PLAYERS_PER_TEAM):
+                    if agents_state[agent_index]['state'] == 'passing':
+                        pass
+                    elif (self.grid_world.who_holds[self.current_viewed_world][0].item() // PLAYERS_PER_TEAM == agent_index // PLAYERS_PER_TEAM):
                         agents_state[agent_index]['state'] = 'running'
                     else:
                         agents_state[agent_index]['state'] = 'defending'
@@ -221,5 +237,8 @@ class SimulationPolicies:
                     self.different_goto_position(self.current_viewed_world, agent_index, gpos, 15.0)
                 elif (state == 'defending'):
                     self.defend_player(agent_index, (agent_index + 5) % 10)
-
+                elif (state == 'passing'):
+                    self.get_velocity_angle_for_ball_pass(self.current_viewed_world, agent_index, 40)
+                    print("PASSING: \n\n ", self.grid_world.actions[self.current_viewed_world, agent_index])
         return agents_state
+

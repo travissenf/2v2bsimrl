@@ -53,7 +53,7 @@ inline void takePlayerAction(Engine &ctx,
                 
 {
     action.vdes = std::min(action.vdes, (float)30.0);
-    if (isBallInPass(ctx)) {
+    if (canBallBeCaught(ctx, id)) {
         if (catchBallIfClose(ctx, court_pos, id, status)) {
             return;
         }
@@ -62,10 +62,11 @@ inline void takePlayerAction(Engine &ctx,
         case PlayerDecision::SHOOT: {
             std::cout << "in TAKE PLAYER ACTION: decision is shoot" << std::endl;
             if (isHoldingBall(id, ctx)){
-                PlayerStatus s = status;
-                s.hasBall = false;
-                s.justShot = true;
-                status = s;
+                status.hasBall = false;
+                status.justShot = true;
+
+                BallStatus* ball_status = &ctx.get<BallStatus>(ctx.singleton<BallReference>().theBall);
+                ball_status->ballState = BallStatesPossibilities::BALL_IN_SHOT;
             }
             break;
         } 
@@ -75,16 +76,13 @@ inline void takePlayerAction(Engine &ctx,
                 status.hasBall = false;
                 status.justShot = false;
 
-                int th = 2;
-                int v = 20;
-                changeBallToInPass(ctx, th, v, id);
+                // int th = 2;
+                // int v = 20;
+                changeBallToInPass(ctx, action.thdes, action.vdes, id);
             }
             break;
         }
         case PlayerDecision::MOVE: {
-            // if (isBallInPass(ctx)) {
-            //     catchBallIfClose(ctx, court_pos, id, status);
-            // }
             // std::cout << "in TAKE PLAYER ACTION: decision is move" << std::endl;
             // if (!isHoldingBall(id, ctx) && isBallLoose()) {
 
@@ -98,17 +96,6 @@ inline void takePlayerAction(Engine &ctx,
     }
 
     court_pos = updateCourtPosition(court_pos, action);
-
-    // bool episode_done = false;
-    // if (reset.resetNow != 0) {
-    //     reset.resetNow = 0;
-    //     episode_done = true;
-    // }
-
-
-    
-    // court_pos = updateCourtPosition(court_pos, action);
-
 }
 
 inline void balltick(Engine &ctx,

@@ -72,9 +72,13 @@ bool isBallLoose(Engine &ctx) {
     return status->heldBy == -1 && status->ballState == BallStatesPossibilities::BALL_IN_LOOSE;;
 }
 
-bool isBallInPass(Engine &ctx) {
+bool isBallInPass(Engine &ctx, PlayerID &id) {
     BallStatus* status = &ctx.get<BallStatus>(ctx.singleton<BallReference>().theBall);
-    return status->heldBy == -1 && status->ballState == BallStatesPossibilities::BALL_IN_PASS;;
+    return (id.id != status->whoPassed) && (status->heldBy == -1) && (status->ballState == BallStatesPossibilities::BALL_IN_PASS);
+}
+
+bool canBallBeCaught(Engine &ctx, PlayerID &id) {
+    return isBallInPass(ctx, id) || isBallLoose(ctx);
 }
 
 bool catchBallIfClose(Engine &ctx,
@@ -90,9 +94,7 @@ bool catchBallIfClose(Engine &ctx,
 
     BallStatus* ball_status = &ctx.get<BallStatus>(ctx.singleton<BallReference>().theBall);
 
-    if (id.id != ball_status->whoPassed 
-        && std::abs(player_x - x) < 3.5 
-        && std::abs(player_y - y) < 3.5) 
+    if (std::abs(player_x - x) < 3.5 && std::abs(player_y - y) < 3.5) 
     {
         status.hasBall = true;
 
