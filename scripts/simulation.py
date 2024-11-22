@@ -636,15 +636,20 @@ class Simulation(SimulationPolicies):
             #     continue
 
             if not self.is_paused:
-                agents_state = self.run_policy(agents_state)
-
-                ## CODE TO SHOOT / PASS
-                # if ((idx == 20) and (self.grid_world.who_holds[self.current_viewed_world][0] != -1)):
-                #     self.grid_world.choices[self.current_viewed_world][self.grid_world.who_holds[self.current_viewed_world][0]][0] = 1
+                agent_with_ball_id = self.grid_world.who_holds[self.current_viewed_world][0]
+                if ((idx > 60) and (self.grid_world.who_holds[self.current_viewed_world][0] != -1)):
+                    self.grid_world.choices[self.current_viewed_world][agent_with_ball_id][0] = 2
+                    print("\n\n\n afhaoirwehgapioewhgoipwah \n\n")
+                    agents_state[agent_with_ball_id]['state'] = 'passing'
                 
-                if ((idx == 20) and (self.grid_world.who_holds[self.current_viewed_world][0] != -1)):
-                    self.grid_world.choices[self.current_viewed_world][self.grid_world.who_holds[self.current_viewed_world][0]][0] = 2
-            
+                ## CODE TO SHOOT / PASS
+                if ((idx == 20) and (agent_with_ball_id != -1)):
+                    self.grid_world.choices[self.current_viewed_world][agent_with_ball_id][0] = 1
+                # else:
+                #     self.grid_world.choices[self.current_viewed_world][agent_with_ball_id][0] = 0
+                
+                agents_state = self.run_policy(agents_state)
+                print(" fffffffffffffff ")
                 
                 t = time.time()
                 self.grid_world.step()
