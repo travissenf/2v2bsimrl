@@ -20,7 +20,7 @@ enum class PlayerDecision : int8_t {
     MOVE = 0,
     SHOOT = 1,
     PASS = 2,
-    None,
+    NOTHING = 3,
 };
 
 enum BallStatesPossibilities {
@@ -69,6 +69,7 @@ struct BallState {
 struct BallStatus {
     int8_t heldBy;
     int8_t whoShot;
+    int8_t whoPassed;
     BallStatesPossibilities ballState;
 };
 

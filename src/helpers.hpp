@@ -23,6 +23,15 @@ float generateRandomValue(float min_val, float max_val);
 
 void resetBallState(BallState &ball_state, BallStatus &ball_status, float hoop_th);
 
+bool isHoldingBall(PlayerID &id, Engine &ctx);
+bool isBallLoose(Engine &ctx);
+bool isBallInPass(Engine &ctx);
+
+void changeBallToInPass(Engine &ctx, int th, int v, PlayerID &id);
+bool catchBallIfClose(Engine &ctx,
+                      CourtPos &court_pos,
+                      PlayerID &id, 
+                      PlayerStatus &status);
 } // namespace madsimple
 
 #endif // HELPERS_HPP

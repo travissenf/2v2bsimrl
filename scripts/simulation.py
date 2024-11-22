@@ -637,8 +637,15 @@ class Simulation(SimulationPolicies):
 
             if not self.is_paused:
                 agents_state = self.run_policy(agents_state)
+
+                ## CODE TO SHOOT / PASS
+                # if ((idx == 20) and (self.grid_world.who_holds[self.current_viewed_world][0] != -1)):
+                #     self.grid_world.choices[self.current_viewed_world][self.grid_world.who_holds[self.current_viewed_world][0]][0] = 1
+                
                 if ((idx == 20) and (self.grid_world.who_holds[self.current_viewed_world][0] != -1)):
-                    self.grid_world.choices[self.current_viewed_world][self.grid_world.who_holds[self.current_viewed_world][0]][0] = 1
+                    self.grid_world.choices[self.current_viewed_world][self.grid_world.who_holds[self.current_viewed_world][0]][0] = 2
+            
+                
                 t = time.time()
                 self.grid_world.step()
                 print(self.grid_world.who_holds)

@@ -3,6 +3,7 @@
 #include <madrona/mw_gpu_entry.hpp>
 #include <random>
 #include <cmath>
+#include <iostream>
 
 
 using namespace madrona;
@@ -52,9 +53,15 @@ inline void takePlayerAction(Engine &ctx,
                 
 {
     action.vdes = std::min(action.vdes, (float)30.0);
+    if (isBallInPass(ctx)) {
+        if (catchBallIfClose(ctx, court_pos, id, status)) {
+            return;
+        }
+    }
     switch (decision) {
         case PlayerDecision::SHOOT: {
-            if (ctx.get<BallStatus>(ctx.singleton<BallReference>().theBall).heldBy == id.id){
+            std::cout << "in TAKE PLAYER ACTION: decision is shoot" << std::endl;
+            if (isHoldingBall(id, ctx)){
                 PlayerStatus s = status;
                 s.hasBall = false;
                 s.justShot = true;
@@ -63,10 +70,30 @@ inline void takePlayerAction(Engine &ctx,
             break;
         } 
         case PlayerDecision::PASS: {
-            
+            std::cout << "in TAKE PLAYER ACTION: decision is pass" << std::endl;
+            if (isHoldingBall(id, ctx)) {
+                status.hasBall = false;
+                status.justShot = false;
+
+                int th = 2;
+                int v = 20;
+                changeBallToInPass(ctx, th, v, id);
+            }
+            break;
         }
         case PlayerDecision::MOVE: {
-            
+            std::cout << "HERE in move" << std::endl;
+            if (isBallInPass(ctx)) {
+                std::cout << "ball is looseeeee" << std::endl;
+                catchBallIfClose(ctx, court_pos, id, status);
+            }
+            // std::cout << "in TAKE PLAYER ACTION: decision is move" << std::endl;
+            // if (!isHoldingBall(id, ctx) && isBallLoose()) {
+
+            // }
+        }
+        case PlayerDecision::NOTHING: {
+
         }
 
         default: break;

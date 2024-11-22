@@ -1,4 +1,5 @@
 #include "helpers.hpp"
+#include <cstdlib> 
 
 namespace madsimple {
 
@@ -52,6 +53,55 @@ BallState updateShotBallState(const BallState &current_ball, const BallStatus &b
     return new_ball_state;
 }
 
+void changeBallToInPass(Engine &ctx, int th, int v, PlayerID &id) {
+    BallStatus* status = &ctx.get<BallStatus>(ctx.singleton<BallReference>().theBall);
+    BallState* state = &ctx.get<BallState>(ctx.singleton<BallReference>().theBall);
+    status->ballState = BallStatesPossibilities::BALL_IN_PASS;
+    status->heldBy = -1;
+    status->whoPassed = id.id;
+    state->th = th;
+    state->v = v;
+}
 
+bool isHoldingBall(PlayerID &id, Engine &ctx) {
+    return ctx.get<BallStatus>(ctx.singleton<BallReference>().theBall).heldBy == id.id;
+} 
+
+bool isBallLoose(Engine &ctx) {
+    BallStatus* status = &ctx.get<BallStatus>(ctx.singleton<BallReference>().theBall);
+    return status->heldBy == -1 && status->ballState == BallStatesPossibilities::BALL_IN_LOOSE;;
+}
+
+bool isBallInPass(Engine &ctx) {
+    BallStatus* status = &ctx.get<BallStatus>(ctx.singleton<BallReference>().theBall);
+    return status->heldBy == -1 && status->ballState == BallStatesPossibilities::BALL_IN_PASS;;
+}
+
+bool catchBallIfClose(Engine &ctx,
+                      CourtPos &court_pos,
+                      PlayerID &id, 
+                      PlayerStatus &status) {
+    BallState* state = &ctx.get<BallState>(ctx.singleton<BallReference>().theBall);
+    int x = state->x;
+    int y = state->y;
+
+    int player_x = court_pos.x;
+    int player_y = court_pos.y;
+
+    BallStatus* ball_status = &ctx.get<BallStatus>(ctx.singleton<BallReference>().theBall);
+
+    if (id.id != ball_status->whoPassed 
+        && std::abs(player_x - x) < 3.5 
+        && std::abs(player_y - y) < 3.5) 
+    {
+        status.hasBall = true;
+
+        ball_status->heldBy = id.id;
+        state->v = 0;
+        state->th = 0;
+        return true;
+    }
+    return false;
+}
 
 } 
