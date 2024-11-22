@@ -16,10 +16,11 @@ enum class ExportID : uint32_t {
     Choice,
 };
 
-enum PlayerDecision {
-    MOVE,
-    SHOOT,
-    PASS
+enum class PlayerDecision : int8_t {
+    MOVE = 0,
+    SHOOT = 1,
+    PASS = 2,
+    None,
 };
 
 enum BallStatesPossibilities {
@@ -31,7 +32,6 @@ enum BallStatesPossibilities {
 struct PlayerStatus {
     bool hasBall;
     bool justShot; // TODO: do we need?
-    PlayerDecision playerDecision;
 };
 
 struct Action {
@@ -81,7 +81,8 @@ struct Agent : public madrona::Archetype<
     // CurStep,  // make singleton
     CourtPos,
     PlayerID,
-    PlayerStatus
+    PlayerStatus,
+    PlayerDecision
 > {};
 
 struct BallArchetype : public madrona::Archetype<

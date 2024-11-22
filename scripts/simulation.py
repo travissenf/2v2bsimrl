@@ -21,7 +21,7 @@ P_LOC_VAL_TO_INDEX = {"x": 0, "y": 1, "theta": 2, "velocity": 3, "angular v": 4,
 
 B_LOC_INDEX_TO_VAL = {0: "x", 1: "y", 2: "theta", 3: "velocity"}
 
-SUPPORTED_POLICIES = {'run_in_line'}
+SUPPORTED_POLICIES = {'run_in_line', 'run_and_defend'}
 
 class Simulation(SimulationPolicies):
     def __init__(self):
@@ -41,6 +41,9 @@ class Simulation(SimulationPolicies):
         elif (self.args.policy == 'run_in_line'):
             self.initialize_policy = self.initialize_run_in_line
             self.run_policy = self.run_in_line_policy
+        elif (self.args.policy == 'run_and_defend'):
+            self.initialize_policy = self.run_around_and_defend_initialize
+            self.run_policy = self.run_around_and_defend_policy
         # Constants
         self.PLAYER_CIRCLE_SIZE = 12
         self.SCREEN_WIDTH, self.SCREEN_HEIGHT = 940, 500
@@ -633,8 +636,12 @@ class Simulation(SimulationPolicies):
             #     continue
 
             if not self.is_paused:
-                agents_state = self.run_in_line_policy(agents_state)
+                agents_state = self.run_policy(agents_state)
+                if ((idx == 20) and (self.grid_world.who_holds[self.current_viewed_world][0] != -1)):
+                    self.grid_world.choices[self.current_viewed_world][self.grid_world.who_holds[self.current_viewed_world][0]][0] = 1
+                t = time.time()
                 self.grid_world.step()
+                print(self.grid_world.who_holds)
                 self.elapsed_time += 0.1
                 idx += 1
             else:
@@ -685,7 +692,9 @@ class Simulation(SimulationPolicies):
                 self.display_score(self.screen)
 
                 pygame.display.flip()
-                time.sleep(0.1)
+                if (time.time() - t < 0.1):
+                    time.sleep(0.1 - (time.time() - t))
+                
 
         if self.args.savevideo:
             frame_data = pygame.surfarray.array3d(self.screen)

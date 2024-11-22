@@ -17,6 +17,9 @@ import json
 
 PLAYERS_PER_TEAM = 5
 
+LEFT_HOOP_X = -41.75
+RIGHT_HOOP_X = 41.75
+
 class SimulationPolicies:
     def goto_position(self, world_index, agent_index, goal_position, desired_velocity):
         # Get the agent's current position and facing angle
@@ -69,7 +72,6 @@ class SimulationPolicies:
         # Set first player to 'at_free_throw_line'
         agents_state[0]['state'] = 'at_free_throw_line'
         agents_state[0]['timer'] = 0.0
-
         return agents_state
     
     
@@ -122,6 +124,41 @@ class SimulationPolicies:
                         agents_state[agent_index]['needs_scoot'] = False
         return agents_state
     
+    def different_goto_position(self, world_index, agent_index, goal_position, desired_velocity):
+        # Get the agent's current position and facing angle
+        x = self.grid_world.player_pos[0][agent_index][0]
+        y = self.grid_world.player_pos[0][agent_index][1]
+        v = self.grid_world.player_pos[0][agent_index][3].item()
+        facing_angle = self.grid_world.player_pos[0][agent_index][5]
+
+        # Compute the vector towards the goal
+        dx = goal_position[0] - x
+        dy = goal_position[1] - y
+
+        # Compute the angle towards the goal
+        desired_direction = np.arctan2(dy, dx)
+
+        # Stop early if reaches goal already
+        if ((v**2 / (2 * max(np.hypot(abs(dx),abs(dy)), 1e-6))) > 10.0):
+            self.grid_world.actions[world_index, agent_index] = torch.tensor([0, 0, 0])
+            return True
+        if (np.hypot(abs(dx),abs(dy)) < 0.25):
+            self.grid_world.actions[world_index, agent_index] = torch.tensor([0, 0, 0])
+            return True
+
+        # Normalize desired_direction to be between -pi and pi
+        desired_direction = (desired_direction + np.pi) % (2 * np.pi) + np.pi
+
+        # Compute the difference between current facing angle and desired direction
+        angle_diff = desired_direction - facing_angle
+        angle_diff = (angle_diff + np.pi) % (2 * np.pi) - np.pi
+
+        # Set angular velocity proportional to angle difference
+        angular_velocity = angle_diff * 2.0  # Scaling factor
+        self.grid_world.actions[world_index, agent_index] = torch.tensor([desired_velocity, desired_direction, angular_velocity])
+
+        return False
+
 
     def run_around_and_defend_initialize(self):
         # Initialize agent states
@@ -129,11 +166,62 @@ class SimulationPolicies:
         team_holding = self.grid_world.who_holds[self.current_viewed_world][0].item() // PLAYERS_PER_TEAM
 
         for i in range(self.num_players):
+            self.grid_world.choices[self.current_viewed_world][i] = 0
             if (i // PLAYERS_PER_TEAM) ==  team_holding:
                 agents_state.append({'state': 'running'})
             else:
                 agents_state.append({'state': 'defending'})
-
+        print('initialized')
+        
         return agents_state
     
-                                          
+    def defend_player(self, cur_player, mark_player):
+        if (cur_player // PLAYERS_PER_TEAM) == 0:
+            hoop = RIGHT_HOOP_X
+        else:
+            hoop = LEFT_HOOP_X
+        x = self.grid_world.player_pos[self.current_viewed_world][mark_player][0].item() * 0.75 + hoop * 0.25
+        y = self.grid_world.player_pos[self.current_viewed_world][mark_player][1].item() * 0.8
+
+        x = x * 0.95 + self.grid_world.ball_pos[self.current_viewed_world][0].item() * 0.05
+        y = y * 0.95 + self.grid_world.ball_pos[self.current_viewed_world][1].item() * 0.05
+        gpos = (x, y)
+        self.different_goto_position(self.current_viewed_world, cur_player, gpos, 20.0)
+
+
+    def run_around_and_defend_policy(self, agents_state):
+        print(self.grid_world.who_holds[self.current_viewed_world][0].item())
+        for j in range(self.num_worlds):
+            for agent_index in range(self.num_players):
+                if (self.grid_world.who_holds[self.current_viewed_world][0].item() != -1):
+                    if (self.grid_world.who_holds[self.current_viewed_world][0].item() // PLAYERS_PER_TEAM == agent_index // PLAYERS_PER_TEAM):
+                        agents_state[agent_index]['state'] = 'running'
+                    else:
+                        agents_state[agent_index]['state'] = 'defending'
+                state = agents_state[agent_index]['state']
+                if ((self.grid_world.who_holds[self.current_viewed_world][1].item() == -1)
+                    and self.grid_world.who_holds[self.current_viewed_world][0].item() == -1):
+                    print("here")
+                    self.different_goto_position(self.current_viewed_world, 
+                                                 agent_index, 
+                                                 (self.grid_world.ball_pos[self.current_viewed_world][0].item(),
+                                                  self.grid_world.ball_pos[self.current_viewed_world][1].item()), 
+                                                 15.0)
+                elif state == 'running':
+                    ypos = (int(self.elapsed_time) // 4) % 2
+                    xpos = (agent_index // 5)
+                    if (agent_index % 5 == 0):
+                        gpos = (-10.0 + xpos * 20.0, -20.0 + ypos * 35.0)
+                    elif (agent_index % 5 == 1):
+                        gpos = (-41.0 + xpos * 82.0, -21.0 + ypos * 14.0)
+                    elif (agent_index % 5 == 2):
+                        gpos = (-30.0 + xpos * 60.0, 8.0 + ypos * 13.0)
+                    elif (agent_index % 5 == 3):
+                        gpos = (-28.0 + xpos * 56.0, -16.0 + ypos * 18.0)
+                    elif (agent_index % 5 == 4):
+                        gpos = (-40.0 + xpos * 80.0, ypos * 18.0)
+                    self.different_goto_position(self.current_viewed_world, agent_index, gpos, 15.0)
+                elif (state == 'defending'):
+                    self.defend_player(agent_index, (agent_index + 5) % 10)
+
+        return agents_state
