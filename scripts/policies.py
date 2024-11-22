@@ -190,7 +190,6 @@ class SimulationPolicies:
 
 
     def run_around_and_defend_policy(self, agents_state):
-        print(self.grid_world.who_holds[self.current_viewed_world][0].item())
         for j in range(self.num_worlds):
             for agent_index in range(self.num_players):
                 if (self.grid_world.who_holds[self.current_viewed_world][0].item() != -1):
@@ -201,7 +200,6 @@ class SimulationPolicies:
                 state = agents_state[agent_index]['state']
                 if ((self.grid_world.who_holds[self.current_viewed_world][1].item() == -1)
                     and self.grid_world.who_holds[self.current_viewed_world][0].item() == -1):
-                    print("here")
                     self.different_goto_position(self.current_viewed_world, 
                                                  agent_index, 
                                                  (self.grid_world.ball_pos[self.current_viewed_world][0].item(),

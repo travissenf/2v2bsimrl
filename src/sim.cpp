@@ -82,11 +82,9 @@ inline void takePlayerAction(Engine &ctx,
             break;
         }
         case PlayerDecision::MOVE: {
-            std::cout << "HERE in move" << std::endl;
-            if (isBallInPass(ctx)) {
-                std::cout << "ball is looseeeee" << std::endl;
-                catchBallIfClose(ctx, court_pos, id, status);
-            }
+            // if (isBallInPass(ctx)) {
+            //     catchBallIfClose(ctx, court_pos, id, status);
+            // }
             // std::cout << "in TAKE PLAYER ACTION: decision is move" << std::endl;
             // if (!isHoldingBall(id, ctx) && isBallLoose()) {
 
@@ -167,7 +165,7 @@ inline void balltick(Engine &ctx,
                 Entity pl = players[i];
                 CourtPos ppos = ctx.get<CourtPos>(pl);
                 float dist = sqrt((ppos.x - new_ball_state.x) * (ppos.x - new_ball_state.x) + (ppos.y - new_ball_state.y) * (ppos.y - new_ball_state.y));
-                if (dist < 1.0) {
+                if ((dist < 2.0) && (ctx.get<PlayerID>(pl).id != new_ball_held.whoPassed)) {
                     new_ball_held.heldBy = i;
                     new_ball_state.x = ppos.x;
                     new_ball_state.y = ppos.y;

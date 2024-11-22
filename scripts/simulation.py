@@ -594,6 +594,14 @@ class Simulation(SimulationPolicies):
                         # Toggle show_details
                         self.show_details = not self.show_details
                     
+                    elif event.key == pygame.K_s:
+                        # Toggle show_details
+                        self.grid_world.choices[self.current_viewed_world][self.grid_world.who_holds[self.current_viewed_world][0]][0] = 1
+
+                    elif event.key == pygame.K_a:
+                        # Toggle show_details
+                        self.grid_world.choices[self.current_viewed_world][self.grid_world.who_holds[self.current_viewed_world][0]][0] = 2
+                    
                     elif event.key == pygame.K_p:
                         self.is_paused = not self.is_paused
 
@@ -642,13 +650,14 @@ class Simulation(SimulationPolicies):
                 # if ((idx == 20) and (self.grid_world.who_holds[self.current_viewed_world][0] != -1)):
                 #     self.grid_world.choices[self.current_viewed_world][self.grid_world.who_holds[self.current_viewed_world][0]][0] = 1
                 
-                if ((idx == 20) and (self.grid_world.who_holds[self.current_viewed_world][0] != -1)):
-                    self.grid_world.choices[self.current_viewed_world][self.grid_world.who_holds[self.current_viewed_world][0]][0] = 2
+                # if ((idx == 20) and (self.grid_world.who_holds[self.current_viewed_world][0] != -1)):
+                #     self.grid_world.choices[self.current_viewed_world][self.grid_world.who_holds[self.current_viewed_world][0]][0] = 2
             
                 
                 t = time.time()
                 self.grid_world.step()
-                print(self.grid_world.who_holds)
+                for i in range(self.num_players):
+                    self.grid_world.choices[self.current_viewed_world][i][0] = 0
                 self.elapsed_time += 0.1
                 idx += 1
             else:
