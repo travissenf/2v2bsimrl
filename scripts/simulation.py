@@ -21,7 +21,7 @@ P_LOC_VAL_TO_INDEX = {"x": 0, "y": 1, "theta": 2, "velocity": 3, "angular v": 4,
 
 B_LOC_INDEX_TO_VAL = {0: "x", 1: "y", 2: "theta", 3: "velocity"}
 
-SUPPORTED_POLICIES = {'run_in_line', 'run_and_defend'}
+SUPPORTED_POLICIES = {'run_in_line', 'run_and_defend', 'do_nothing'}
 
 class Simulation(SimulationPolicies):
     def __init__(self):
@@ -44,6 +44,9 @@ class Simulation(SimulationPolicies):
         elif (self.args.policy == 'run_and_defend'):
             self.initialize_policy = self.run_around_and_defend_initialize
             self.run_policy = self.run_around_and_defend_policy
+        elif (self.args.policy == 'do_nothing'):
+            self.initialize_policy = self.do_nothing_i
+            self.run_policy = self.do_nothing
         # Constants
         self.PLAYER_CIRCLE_SIZE = 12
         self.SCREEN_WIDTH, self.SCREEN_HEIGHT = 940, 500
@@ -528,6 +531,7 @@ class Simulation(SimulationPolicies):
             self.load_from_json("gamestates/" + self.args.load_state)
         
         while (idx < self.args.num_steps):
+            passing = False # quick fix, please remove later
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.cleanup()
@@ -594,6 +598,14 @@ class Simulation(SimulationPolicies):
                         # Toggle show_details
                         self.show_details = not self.show_details
                     
+                    elif event.key == pygame.K_s:
+                        # Toggle show_details
+                        self.grid_world.choices[self.current_viewed_world][self.grid_world.who_holds[self.current_viewed_world][0]][0] = 1
+
+                    elif event.key == pygame.K_a:
+                        passing = True #quick fix, please remove later
+                        self.grid_world.choices[self.current_viewed_world][self.grid_world.who_holds[self.current_viewed_world][0]][0] = 2
+                    
                     elif event.key == pygame.K_p:
                         self.is_paused = not self.is_paused
 
@@ -622,7 +634,7 @@ class Simulation(SimulationPolicies):
                             # Update the display immediately
                             pygame.display.flip()
                     
-                    elif event.key == pygame.K_s:
+                    elif event.key == pygame.K_z:
                         output_file = "gamestates/" + input("Enter the filename to save the JSON (e.g., 'game_state'): ").strip() + ".json"
 
                         # Default filename if the user doesn't enter anything
@@ -636,24 +648,31 @@ class Simulation(SimulationPolicies):
             #     continue
 
             if not self.is_paused:
-                agent_with_ball_id = self.grid_world.who_holds[self.current_viewed_world][0]
-                if ((idx > 60) and (self.grid_world.who_holds[self.current_viewed_world][0] != -1)):
-                    self.grid_world.choices[self.current_viewed_world][agent_with_ball_id][0] = 2
-                    print("\n\n\n afhaoirwehgapioewhgoipwah \n\n")
-                    agents_state[agent_with_ball_id]['state'] = 'passing'
+                # agent_with_ball_id = self.grid_world.who_holds[self.current_viewed_world][0]
+                # if ((idx > 60) and (self.grid_world.who_holds[self.current_viewed_world][0] != -1)):
+                #     self.grid_world.choices[self.current_viewed_world][agent_with_ball_id][0] = 2
+                #     print("\n\n\n afhaoirwehgapioewhgoipwah \n\n")
+                #     agents_state[agent_with_ball_id]['state'] = 'passing'
                 
-                ## CODE TO SHOOT / PASS
-                if ((idx == 20) and (agent_with_ball_id != -1)):
-                    self.grid_world.choices[self.current_viewed_world][agent_with_ball_id][0] = 1
-                # else:
-                #     self.grid_world.choices[self.current_viewed_world][agent_with_ball_id][0] = 0
+                # # if ((idx == 20) and (self.grid_world.who_holds[self.current_viewed_world][0] != -1)):
+                # #     self.grid_world.choices[self.current_viewed_world][self.grid_world.who_holds[self.current_viewed_world][0]][0] = 2
+            
+                # ## CODE TO SHOOT / PASS
+                # if ((idx == 20) and (agent_with_ball_id != -1)):
+                #     self.grid_world.choices[self.current_viewed_world][agent_with_ball_id][0] = 1
+                # # else:
+                # #     self.grid_world.choices[self.current_viewed_world][agent_with_ball_id][0] = 0
                 
                 agents_state = self.run_policy(agents_state)
-                print(" fffffffffffffff ")
+                if passing:
+                    self.get_velocity_angle_for_ball_pass(self.current_viewed_world, 
+                                                              self.grid_world.who_holds[self.current_viewed_world][0], 20.0)
+                # print(" fffffffffffffff ")
                 
                 t = time.time()
                 self.grid_world.step()
-                print(self.grid_world.who_holds)
+                for i in range(self.num_players):
+                    self.grid_world.choices[self.current_viewed_world][i][0] = 0
                 self.elapsed_time += 0.1
                 idx += 1
             else:
@@ -661,7 +680,7 @@ class Simulation(SimulationPolicies):
                 self.grid_world.actions.zero_()
                 continue
 
-            agents_state = self.run_policy(agents_state)
+            # agents_state = self.run_policy(agents_state)
 
             if self.args.savevideo:
                 frame_data = pygame.surfarray.array3d(self.screen)

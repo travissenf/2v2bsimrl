@@ -28,7 +28,7 @@ bool isBallLoose(Engine &ctx);
 bool isBallInPass(Engine &ctx, PlayerID &id);
 bool canBallBeCaught(Engine &ctx, PlayerID &id);
 
-void changeBallToInPass(Engine &ctx, int th, int v, PlayerID &id);
+void changeBallToInPass(Engine &ctx, float th, float v, PlayerID &id);
 bool catchBallIfClose(Engine &ctx,
                       CourtPos &court_pos,
                       PlayerID &id, 

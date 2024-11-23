@@ -167,12 +167,16 @@ class SimulationPolicies:
         else:
             # Return a random number between 5 and 9 that is not agent_index
             possible_indices = [i for i in range(5, 10) if i != agent_index]
+        print(possible_indices)
     
         target_agent_index = random.choice(possible_indices)
+        print(target_agent_index)
 
         x, y = self.grid_world.player_pos[0][target_agent_index][0], self.grid_world.player_pos[0][target_agent_index][1]
-
+        print(x)
+        print(y)
         self.different_goto_position(world_index, agent_index, (x, y), desired_velocity)
+        print(self.grid_world.actions[world_index, agent_index])
 
     def run_around_and_defend_initialize(self):
         # Initialize agent states
@@ -204,7 +208,6 @@ class SimulationPolicies:
 
 
     def run_around_and_defend_policy(self, agents_state):
-        print(self.grid_world.who_holds[self.current_viewed_world][0].item())
         for j in range(self.num_worlds):
             for agent_index in range(self.num_players):
                 if (self.grid_world.who_holds[self.current_viewed_world][0].item() != -1):
@@ -217,14 +220,13 @@ class SimulationPolicies:
                 state = agents_state[agent_index]['state']
                 if ((self.grid_world.who_holds[self.current_viewed_world][1].item() == -1)
                     and self.grid_world.who_holds[self.current_viewed_world][0].item() == -1):
-                    print("here")
                     self.different_goto_position(self.current_viewed_world, 
                                                  agent_index, 
                                                  (self.grid_world.ball_pos[self.current_viewed_world][0].item(),
                                                   self.grid_world.ball_pos[self.current_viewed_world][1].item()), 
                                                  15.0)
                 elif state == 'running':
-                    ypos = (int(self.elapsed_time) // 4) % 2
+                    ypos = (int(self.elapsed_time) // 6) % 2
                     xpos = (agent_index // 5)
                     if (agent_index % 5 == 0):
                         gpos = (-10.0 + xpos * 20.0, -20.0 + ypos * 35.0)
@@ -243,4 +245,9 @@ class SimulationPolicies:
                     self.get_velocity_angle_for_ball_pass(self.current_viewed_world, agent_index, 40)
                     print("PASSING: \n\n ", self.grid_world.actions[self.current_viewed_world, agent_index])
         return agents_state
-
+    
+    def do_nothing_i(self):
+        return {}
+    
+    def do_nothing(self, agents_state):
+        return {}

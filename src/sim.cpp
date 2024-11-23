@@ -152,7 +152,7 @@ inline void balltick(Engine &ctx,
                 Entity pl = players[i];
                 CourtPos ppos = ctx.get<CourtPos>(pl);
                 float dist = sqrt((ppos.x - new_ball_state.x) * (ppos.x - new_ball_state.x) + (ppos.y - new_ball_state.y) * (ppos.y - new_ball_state.y));
-                if (dist < 1.0) {
+                if ((dist < 2.0) && (ctx.get<PlayerID>(pl).id != new_ball_held.whoPassed)) {
                     new_ball_held.heldBy = i;
                     new_ball_state.x = ppos.x;
                     new_ball_state.y = ppos.y;
