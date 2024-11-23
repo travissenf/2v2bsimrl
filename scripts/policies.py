@@ -226,7 +226,7 @@ class SimulationPolicies:
                                                   self.grid_world.ball_pos[self.current_viewed_world][1].item()), 
                                                  15.0)
                 elif state == 'running':
-                    ypos = (int(self.elapsed_time) // 4) % 2
+                    ypos = (int(self.elapsed_time) // 6) % 2
                     xpos = (agent_index // 5)
                     if (agent_index % 5 == 0):
                         gpos = (-10.0 + xpos * 20.0, -20.0 + ypos * 35.0)
@@ -245,4 +245,9 @@ class SimulationPolicies:
                     self.get_velocity_angle_for_ball_pass(self.current_viewed_world, agent_index, 40)
                     print("PASSING: \n\n ", self.grid_world.actions[self.current_viewed_world, agent_index])
         return agents_state
-
+    
+    def do_nothing_i(self):
+        return {}
+    
+    def do_nothing(self, agents_state):
+        return {}

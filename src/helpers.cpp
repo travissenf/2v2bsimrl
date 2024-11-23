@@ -22,15 +22,18 @@ CourtPos updateCourtPosition(const CourtPos &current_pos, const Action &action) 
 
     float dist = sqrt(lx * lx + ly * ly);
 
-    if (dist <= MAX_V_CHANGE * D_T){
+    if (dist <= MAX_V_CHANGE * D_T){ // always true for now
         new_player_pos.v = action.vdes;
         new_player_pos.th = action.thdes;
-    } else {
-        ax += ((MAX_V_CHANGE * D_T) / dist) * lx;
-        ay += ((MAX_V_CHANGE * D_T) / dist) * ly;
-        new_player_pos.v = sqrt(ax * ax + ay * ay);
-        new_player_pos.th = atan2(ay, ax);
-    }
+    } 
+    
+    // else {
+    //     ax += ((MAX_V_CHANGE * D_T) / dist) * lx;
+    //     ay += ((MAX_V_CHANGE * D_T) / dist) * ly;
+    //     new_player_pos.v = sqrt(ax * ax + ay * ay);
+    //     new_player_pos.th = atan2(ay, ax);
+    // }
+
     new_player_pos.om = action.omdes;
     // replace court_pos with our new positions
     return new_player_pos;
@@ -53,7 +56,7 @@ BallState updateShotBallState(const BallState &current_ball, const BallStatus &b
     return new_ball_state;
 }
 
-void changeBallToInPass(Engine &ctx, int th, int v, PlayerID &id) {
+void changeBallToInPass(Engine &ctx, float th, float v, PlayerID &id) {
     BallStatus* status = &ctx.get<BallStatus>(ctx.singleton<BallReference>().theBall);
     BallState* state = &ctx.get<BallState>(ctx.singleton<BallReference>().theBall);
     status->ballState = BallStatesPossibilities::BALL_IN_PASS;

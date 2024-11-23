@@ -21,7 +21,7 @@ P_LOC_VAL_TO_INDEX = {"x": 0, "y": 1, "theta": 2, "velocity": 3, "angular v": 4,
 
 B_LOC_INDEX_TO_VAL = {0: "x", 1: "y", 2: "theta", 3: "velocity"}
 
-SUPPORTED_POLICIES = {'run_in_line', 'run_and_defend'}
+SUPPORTED_POLICIES = {'run_in_line', 'run_and_defend', 'do_nothing'}
 
 class Simulation(SimulationPolicies):
     def __init__(self):
@@ -44,6 +44,9 @@ class Simulation(SimulationPolicies):
         elif (self.args.policy == 'run_and_defend'):
             self.initialize_policy = self.run_around_and_defend_initialize
             self.run_policy = self.run_around_and_defend_policy
+        elif (self.args.policy == 'do_nothing'):
+            self.initialize_policy = self.do_nothing_i
+            self.run_policy = self.do_nothing
         # Constants
         self.PLAYER_CIRCLE_SIZE = 12
         self.SCREEN_WIDTH, self.SCREEN_HEIGHT = 940, 500
@@ -631,7 +634,7 @@ class Simulation(SimulationPolicies):
                             # Update the display immediately
                             pygame.display.flip()
                     
-                    elif event.key == pygame.K_s:
+                    elif event.key == pygame.K_z:
                         output_file = "gamestates/" + input("Enter the filename to save the JSON (e.g., 'game_state'): ").strip() + ".json"
 
                         # Default filename if the user doesn't enter anything
