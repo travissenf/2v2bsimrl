@@ -76,7 +76,7 @@ inline void takePlayerAction(Engine &ctx,
 
                 // int th = 2;
                 // int v = 20;
-                changeBallToInPass(ctx, action.thdes, action.vdes, id);
+                changeBallToInPass(ctx, action.thdes, action.vdes, status, id);
             }
             break;
         }

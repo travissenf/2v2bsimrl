@@ -54,10 +54,13 @@ void updateShotBallState(BallState &current_ball, const BallStatus &ball_status)
     current_ball.y += current_ball.v * sin(current_ball.th) * D_T;
 }
 
-void changeBallToInPass(Engine &ctx, float th, float v, PlayerID &id) {
+void changeBallToInPass(Engine &ctx, float th, float v, PlayerStatus &player_status, PlayerID &id) {
     BallStatus* status = &ctx.get<BallStatus>(ctx.singleton<BallReference>().theBall);
     BallState* state = &ctx.get<BallState>(ctx.singleton<BallReference>().theBall);
     status->ballState = BallStatesPossibilities::BALL_IN_PASS;
+    
+    player_status->hasBall = false;
+
     status->heldBy = -1;
     status->whoPassed = id.id;
     state->th = th;
@@ -138,15 +141,16 @@ bool catchBallIfClose(Engine &ctx,
     float player_x = court_pos.x;
     float player_y = court_pos.y;
 
-    BallStatus* ball_status = &ctx.get<BallStatus>(ctx.singleton<BallReference>().theBall);
-
     if (shouldPlayerCatch(state, court_pos)) 
     {
         status.hasBall = true;
 
+        BallStatus* ball_status = &ctx.get<BallStatus>(ctx.singleton<BallReference>().theBall);
         ball_status->heldBy = id.id;
+
         state->v = 0;
         state->th = 0;
+        
         return true;
     }
     return false;

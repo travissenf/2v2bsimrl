@@ -32,7 +32,7 @@ bool shouldPlayerCatch(BallState *state, CourtPos &court_pos);
 
 bool ballIsHeld(BallStatus &ball_held);
 
-void changeBallToInPass(Engine &ctx, float th, float v, PlayerID &id);
+void changeBallToInPass(Engine &ctx, float th, float v, PlayerStatus &player_status, PlayerID &id);
 bool catchBallIfClose(Engine &ctx,
                       CourtPos &court_pos,
                       PlayerID &id, 
