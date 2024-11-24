@@ -37,6 +37,7 @@ class Simulation(SimulationPolicies):
         arg_parser.add_argument('--savevideo', action='store_true', help="Save each frame as an image for video creation")
         arg_parser.add_argument('--load_state', type=str, default=None, help="Load initial state json file from gamestates folder")
         arg_parser.add_argument('--policy', type=str, default='run_in_line', help="Pick which policy to run")
+        arg_parser.add_argument('--debug_mode', action='store_true')
         self.args = arg_parser.parse_args()
         if (self.args.policy not in SUPPORTED_POLICIES):
             raise Exception("Invalid policy, does not exist")
@@ -83,6 +84,9 @@ class Simulation(SimulationPolicies):
         # Load assets
         self._load_assets()
         self.view_angle = 0
+
+        # Set debug mode to whatever the user inputted
+        # self.setDebugMode(self.args.debug_mode)
 
     def _load_assets(self):
         # Load images and scale them

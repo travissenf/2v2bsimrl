@@ -22,6 +22,22 @@ LEFT_HOOP_X = -41.75
 RIGHT_HOOP_X = 41.75
 
 class SimulationPolicies:
+    def __init__(debug_mode_on=False):
+        self.debug_mode_on = debug_mode_on
+
+    def setDebugMode(self, new_debug_mode):
+        self.debug_mode_on = new_debug_mode
+
+    def getDebugMode(self):
+        self.debug_mode_on
+
+    # Takes in a function (most often print)
+    # Only executes the function if debug mode is on
+    def d(self, x):
+        pass
+        # if self.getDebugMode():
+        #     x()
+
     def goto_position(self, world_index, agent_index, goal_position, desired_velocity):
         # Get the agent's current position and facing angle
         x = self.grid_world.player_pos[0][agent_index][0]
@@ -38,7 +54,7 @@ class SimulationPolicies:
 
         # Stop early if reaches goal already
         if 2*v/8 < np.hypot(abs(dx),abs(dy)) < 3*v/8 :
-            print("Yes, reached!")
+            self.d(print("Yes, reached!"))
             self.grid_world.actions[world_index, agent_index] = torch.tensor([0, 0, 0])
             return True
 
@@ -171,13 +187,13 @@ class SimulationPolicies:
             possible_indices = [i for i in range(5, 10) if i != agent_index]
     
         target_agent_index = random.choice(possible_indices)
-        print("possible_indices:", possible_indices, "\t agent_index:", agent_index, "\t target_agent_index:", target_agent_index)
+        self.d(print("possible_indices:", possible_indices, "\t agent_index:", agent_index, "\t target_agent_index:", target_agent_index))
 
         x, y = self.grid_world.player_pos[0][target_agent_index][0], self.grid_world.player_pos[0][target_agent_index][1]
-        print(x)
-        print(y)
+        self.d(print(x))
+        self.d(print(y))
         self.different_goto_position(world_index, agent_index, (x, y), desired_velocity)
-        print(self.grid_world.actions[world_index, agent_index])
+        self.d(print(self.grid_world.actions[world_index, agent_index]))
 
     def run_around_and_defend_initialize(self):
         # Initialize agent states
@@ -190,7 +206,7 @@ class SimulationPolicies:
                 agents_state.append({'state': 'running'})
             else:
                 agents_state.append({'state': 'defending'})
-        print('initialized')
+        self.d(print('initialized'))
         
         return agents_state
     
@@ -244,7 +260,7 @@ class SimulationPolicies:
                     self.defend_player(agent_index, (agent_index + 5) % 10)
                 elif (state == 'passing'):
                     self.get_velocity_angle_for_ball_pass(self.current_viewed_world, agent_index, 40)
-                    print("PASSING: \n\n ", self.grid_world.actions[self.current_viewed_world, agent_index])
+                    self.d(print("PASSING: \n\n ", self.grid_world.actions[self.current_viewed_world, agent_index]))
         return agents_state
     
     def do_nothing_i(self):
