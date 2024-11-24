@@ -33,6 +33,13 @@ constexpr double D_T = 0.05; //1;
 
 constexpr double CATCHING_WINGSPAN = 2.75;
 
+// used for calculating if pass/loose ball can be caught
+// assumption is that if your direction is less than 45 degree away from ball
+// than you can't catch it (as your back is facing the ball)
+constexpr double RADIANS_OF_45_DEGREES = 0.78539;
+// 180 degrees = pi => 45 degrees = pi / 180 * 45 
+
+
 // constexpr char ASSET_PATH[] = "assets/";
 // constexpr char CONFIG_FILE[] = "config/settings.cfg";
 

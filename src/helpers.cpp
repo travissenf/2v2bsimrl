@@ -82,20 +82,65 @@ bool canBallBeCaught(Engine &ctx, PlayerID &id) {
     return isBallInPass(ctx, id) || isBallLoose(ctx);
 }
 
+bool shouldPlayerCatch(BallState *state, CourtPos &court_pos) {
+    float ball_x = state->x;
+    float ball_y = state->y;
+
+    float player_x = court_pos.x;
+    float player_y = court_pos.y;
+
+    // if within catching range 
+    if (!(std::abs(player_x - ball_x) < CATCHING_WINGSPAN 
+          && std::abs(player_y - ball_y) < CATCHING_WINGSPAN)) {
+        return false;
+    } 
+
+    // calculate direction the pass is coming from
+    float angle_of_pass = atan2(player_y - ball_y, player_x - ball_x);
+
+    // if facing a reasonable angle to get the catch
+    // assumption is that if your direction is less than 45 degree away from ball
+    // than you can't catch it (as your back is facing the ball)
+    if (std::abs(angle_of_pass - state->th) < RADIANS_OF_45_DEGREES) {
+        return false;
+    }
+
+    float smaller_dt = D_T / 20;
+    // idea here is we want a small enough dt such that we are basically taking 
+    // a derivative. if we use dt normally we run the risk of the next_ball_pos 
+    // being further when both are in the same direction
+
+    float next_ball_pos_x = state->v * cos(state->th) * smaller_dt + ball_x;
+    float next_ball_pos_y = state->v * sin(state->th) * smaller_dt + ball_y;
+
+    float dist_curr = sqrt((ball_x - player_x) * (ball_x - player_x) +
+                           (ball_y - player_y) * (ball_y - player_y));
+    float next_distance = 
+        sqrt((next_ball_pos_x - player_x) * (next_ball_pos_x - player_x) +
+             (next_ball_pos_y - player_y) * (next_ball_pos_y - player_y));
+    // We are doing these checks to make sure we aren't catching a ball that's 
+    // moving away from a player (in the opposite direction)
+    if (next_distance > dist_curr) {
+        return false;
+    }
+
+    return true;
+}
+
 bool catchBallIfClose(Engine &ctx,
                       CourtPos &court_pos,
                       PlayerID &id, 
                       PlayerStatus &status) {
     BallState* state = &ctx.get<BallState>(ctx.singleton<BallReference>().theBall);
-    int x = state->x;
-    int y = state->y;
+    float ball_x = state->x;
+    float ball_y = state->y;
 
-    int player_x = court_pos.x;
-    int player_y = court_pos.y;
+    float player_x = court_pos.x;
+    float player_y = court_pos.y;
 
     BallStatus* ball_status = &ctx.get<BallStatus>(ctx.singleton<BallReference>().theBall);
 
-    if (std::abs(player_x - x) < CATCHING_WINGSPAN && std::abs(player_y - y) < CATCHING_WINGSPAN) 
+    if (shouldPlayerCatch(state, court_pos)) 
     {
         status.hasBall = true;
 

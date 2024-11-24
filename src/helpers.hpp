@@ -26,7 +26,9 @@ void resetBallState(BallState &ball_state, BallStatus &ball_status, float hoop_t
 bool isHoldingBall(PlayerID &id, Engine &ctx);
 bool isBallLoose(Engine &ctx);
 bool isBallInPass(Engine &ctx, PlayerID &id);
+
 bool canBallBeCaught(Engine &ctx, PlayerID &id);
+bool shouldPlayerCatch(BallState *state, CourtPos &court_pos);
 
 bool ballIsHeld(BallStatus &ball_held);
 
