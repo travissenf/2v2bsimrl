@@ -15,7 +15,7 @@ CourtPos updateCourtPosition(const CourtPos &current_pos, const Action &action);
 BallState updateBallState(const BallState &current_ball, const BallStatesPossibilities &ball_held, 
                           const madrona::Entity *players, const Engine &ctx, float dt);
 
-BallState updateShotBallState(const BallState &current_ball, const BallStatus &ball_status);
+void updateShotBallState(BallState &current_ball, const BallStatus &ball_status);
 
 float calculateDistance(float x1, float y1, float x2, float y2);
 
@@ -27,6 +27,8 @@ bool isHoldingBall(PlayerID &id, Engine &ctx);
 bool isBallLoose(Engine &ctx);
 bool isBallInPass(Engine &ctx, PlayerID &id);
 bool canBallBeCaught(Engine &ctx, PlayerID &id);
+
+bool ballIsHeld(BallStatus &ball_held);
 
 void changeBallToInPass(Engine &ctx, float th, float v, PlayerID &id);
 bool catchBallIfClose(Engine &ctx,

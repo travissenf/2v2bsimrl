@@ -39,21 +39,19 @@ CourtPos updateCourtPosition(const CourtPos &current_pos, const Action &action) 
     return new_player_pos;
 }
 
-BallState updateShotBallState(const BallState &current_ball, const BallStatus &ball_status){
+void updateShotBallState(BallState &current_ball, const BallStatus &ball_status){
     std::mt19937 gen;
     std::uniform_real_distribution<> dis(15.0, 20.0);
-    BallState new_ball_state = current_ball;
-    new_ball_state.v = (float)dis(gen);
+    current_ball.v = (float)dis(gen);
 
     if (ball_status.heldBy > 4){ // inline helper functions
-        new_ball_state.th = atan2(RIGHT_HOOP_Y - new_ball_state.y, RIGHT_HOOP_X - new_ball_state.x); // any number, make a const in constants.hpp
+        current_ball.th = atan2(RIGHT_HOOP_Y - current_ball.y, RIGHT_HOOP_X - current_ball.x); // any number, make a const in constants.hpp
     } else {
-        new_ball_state.th = atan2(LEFT_HOOP_Y - new_ball_state.y, LEFT_HOOP_X - new_ball_state.x);
+        current_ball.th = atan2(LEFT_HOOP_Y - current_ball.y, LEFT_HOOP_X - current_ball.x);
     }
     
-    new_ball_state.x += new_ball_state.v * cos(new_ball_state.th) * D_T;
-    new_ball_state.y += new_ball_state.v * sin(new_ball_state.th) * D_T;
-    return new_ball_state;
+    current_ball.x += current_ball.v * cos(current_ball.th) * D_T;
+    current_ball.y += current_ball.v * sin(current_ball.th) * D_T;
 }
 
 void changeBallToInPass(Engine &ctx, float th, float v, PlayerID &id) {
@@ -107,6 +105,10 @@ bool catchBallIfClose(Engine &ctx,
         return true;
     }
     return false;
+}
+
+bool ballIsHeld(BallStatus &ball_held) {
+    return ball_held.heldBy != -1;
 }
 
 } 

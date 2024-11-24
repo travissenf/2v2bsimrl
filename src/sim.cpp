@@ -60,7 +60,6 @@ inline void takePlayerAction(Engine &ctx,
     }
     switch (decision) {
         case PlayerDecision::SHOOT: {
-            std::cout << "in TAKE PLAYER ACTION: decision is shoot" << std::endl;
             if (isHoldingBall(id, ctx)){
                 status.hasBall = false;
                 status.justShot = true;
@@ -71,7 +70,6 @@ inline void takePlayerAction(Engine &ctx,
             break;
         } 
         case PlayerDecision::PASS: {
-            std::cout << "in TAKE PLAYER ACTION: decision is pass" << std::endl;
             if (isHoldingBall(id, ctx)) {
                 status.hasBall = false;
                 status.justShot = false;
@@ -99,73 +97,72 @@ inline void takePlayerAction(Engine &ctx,
 }
 
 inline void balltick(Engine &ctx,
-                BallState &ball_state,
-                BallStatus &ball_held)
+                     BallState &ball_state,
+                     BallStatus &ball_held)
                 //  
 {
     float dt = ctx.data().dt;
-    BallState new_ball_state = ball_state;
-    BallStatus new_ball_held = ball_held;
     auto players = ctx.singleton<AgentList>().e;
-    float hoopx = LEFT_HOOP_X;
-    float hoopy = LEFT_HOOP_Y;
     std::mt19937 gen; // single funciton call getRandomNumber between 0 and 1 
     std::uniform_real_distribution<> dis(15.0, 20.0);
 
-    if (ball_held.heldBy != -1){
+    if (ballIsHeld(ball_held)){
         Entity p = players[ball_held.heldBy];
         if (ctx.get<PlayerStatus>(p).justShot){
-            new_ball_state = updateShotBallState(new_ball_state, new_ball_held);
-            new_ball_held.whoShot = ball_held.heldBy;
-            new_ball_held.heldBy = -1;
+            updateShotBallState(ball_state, ball_held);
+            ball_held.whoShot = ball_held.heldBy;
+            ball_held.heldBy = -1;
         } else {
 
             // ball updates with held player
-            new_ball_state.x = ctx.get<CourtPos>(p).x;
-            new_ball_state.y = ctx.get<CourtPos>(p).y;
-            new_ball_state.v = ctx.get<CourtPos>(p).v;
-            new_ball_state.th = ctx.get<CourtPos>(p).th;
+            ball_state.x = ctx.get<CourtPos>(p).x;
+            ball_state.y = ctx.get<CourtPos>(p).y;
+            ball_state.v = ctx.get<CourtPos>(p).v;
+            ball_state.th = ctx.get<CourtPos>(p).th;
         }
 
     } else {
-        new_ball_state.x += new_ball_state.v * cos(new_ball_state.th) * dt;
-        new_ball_state.y += new_ball_state.v * sin(new_ball_state.th) * dt;
+        float hoopx = LEFT_HOOP_X;
+
+        float old_ball_state_x = ball_state.x;
+        float old_ball_state_y = ball_state.y;
+        ball_state.x += ball_state.v * cos(ball_state.th) * dt;
+        ball_state.y += ball_state.v * sin(ball_state.th) * dt;
         if (ball_held.whoShot > -1){
             if (ball_held.whoShot > 4){
                 hoopx = RIGHT_HOOP_X;
             }
-            if (sqrt((hoopx - ball_state.x) * (hoopx - ball_state.x) + (hoopy - ball_state.y) * (hoopy - ball_state.y))
-            <= sqrt((new_ball_state.x - ball_state.x) * (new_ball_state.x - ball_state.x) 
-            + (new_ball_state.y - ball_state.y) * (new_ball_state.y - ball_state.y))) {
+            if (sqrt((hoopx - ball_state.x) * (hoopx - ball_state.x) + (LEFT_HOOP_Y - ball_state.y) * (LEFT_HOOP_Y - ball_state.y))
+            <= sqrt((ball_state.x - old_ball_state_x) * (ball_state.x - old_ball_state_x) 
+            + (ball_state.y - old_ball_state_y) * (ball_state.y - old_ball_state_y))) {
                 // did shot go in?
                 dis = std::uniform_real_distribution<>(0.0, 10.0);
-                new_ball_state.v = (float)dis(gen);
-                new_ball_held.whoShot = -1;
+                ball_state.v = (float)dis(gen);
+                Entity p = players[ball_held.whoShot];
+                ctx.get<PlayerStatus>(p).justShot = false;
+                ball_held.whoShot = -1;
                 dis = std::uniform_real_distribution<>(atan(1)*-2, atan(1)*2);
-                new_ball_state.th = (float)dis(gen);
+                ball_state.th = (float)dis(gen);
                 if (ball_held.whoShot > 4) {
-                    new_ball_state.th += atan(1) * 4;
+                    ball_state.th += atan(1) * 4;
                 }
             }
         } else {
             for (int i = 0; i < ACTIVE_PLAYERS; i++){
                 Entity pl = players[i];
                 CourtPos ppos = ctx.get<CourtPos>(pl);
-                float dist = sqrt((ppos.x - new_ball_state.x) * (ppos.x - new_ball_state.x) + (ppos.y - new_ball_state.y) * (ppos.y - new_ball_state.y));
-                if ((dist < 2.0) && (ctx.get<PlayerID>(pl).id != new_ball_held.whoPassed)) {
-                    new_ball_held.heldBy = i;
-                    new_ball_state.x = ppos.x;
-                    new_ball_state.y = ppos.y;
-                    new_ball_state.v = ppos.v;
-                    new_ball_state.th = ppos.th;
+                float dist = sqrt((ppos.x - ball_state.x) * (ppos.x - ball_state.x) + (ppos.y - ball_state.y) * (ppos.y - ball_state.y));
+                if ((dist < 2.0) && (ctx.get<PlayerID>(pl).id != ball_held.whoPassed)) {
+                    ball_held.heldBy = i;
+                    ball_state.x = ppos.x;
+                    ball_state.y = ppos.y;
+                    ball_state.v = ppos.v;
+                    ball_state.th = ppos.th;
                     break;
                 }
             }
         }
     }
-
-    ball_state = new_ball_state;
-    ball_held = new_ball_held;
 }
 
 inline void postprocess(Engine &ctx,
