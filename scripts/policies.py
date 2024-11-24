@@ -161,16 +161,17 @@ class SimulationPolicies:
         return False
         
     def get_velocity_angle_for_ball_pass(self, world_index, agent_index, desired_velocity):
+        if agent_index == -1:
+            return
         if agent_index < 5:
             # Return a random number between 0 and 4 that is not agent_index
             possible_indices = [i for i in range(5) if i != agent_index]
         else:
             # Return a random number between 5 and 9 that is not agent_index
             possible_indices = [i for i in range(5, 10) if i != agent_index]
-        print(possible_indices)
     
         target_agent_index = random.choice(possible_indices)
-        print(target_agent_index)
+        print("possible_indices:", possible_indices, "\t agent_index:", agent_index, "\t target_agent_index:", target_agent_index)
 
         x, y = self.grid_world.player_pos[0][target_agent_index][0], self.grid_world.player_pos[0][target_agent_index][1]
         print(x)

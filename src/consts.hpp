@@ -29,7 +29,9 @@ constexpr int PLAYER_STARTING_WITH_BALL = 5;
 constexpr int NOT_PREVIOUSLY_SHOT = -1;
 constexpr int FIRST_TEAM2_PLAYER = 5;
 
-constexpr double D_T = 0.1;
+constexpr double D_T = 0.05; //1;
+
+constexpr double CATCHING_WINGSPAN = 2.75;
 
 // constexpr char ASSET_PATH[] = "assets/";
 // constexpr char CONFIG_FILE[] = "config/settings.cfg";

@@ -97,7 +97,7 @@ bool catchBallIfClose(Engine &ctx,
 
     BallStatus* ball_status = &ctx.get<BallStatus>(ctx.singleton<BallReference>().theBall);
 
-    if (std::abs(player_x - x) < 3.5 && std::abs(player_y - y) < 3.5) 
+    if (std::abs(player_x - x) < CATCHING_WINGSPAN && std::abs(player_y - y) < CATCHING_WINGSPAN) 
     {
         status.hasBall = true;
 

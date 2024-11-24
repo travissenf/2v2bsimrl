@@ -23,6 +23,8 @@ B_LOC_INDEX_TO_VAL = {0: "x", 1: "y", 2: "theta", 3: "velocity"}
 
 SUPPORTED_POLICIES = {'run_in_line', 'run_and_defend', 'do_nothing'}
 
+PASSING_VELOCITY = 20.0
+
 class Simulation(SimulationPolicies):
     def __init__(self):
         arg_parser = argparse.ArgumentParser()
@@ -648,26 +650,10 @@ class Simulation(SimulationPolicies):
             #     continue
 
             if not self.is_paused:
-                # agent_with_ball_id = self.grid_world.who_holds[self.current_viewed_world][0]
-                # if ((idx > 60) and (self.grid_world.who_holds[self.current_viewed_world][0] != -1)):
-                #     self.grid_world.choices[self.current_viewed_world][agent_with_ball_id][0] = 2
-                #     print("\n\n\n afhaoirwehgapioewhgoipwah \n\n")
-                #     agents_state[agent_with_ball_id]['state'] = 'passing'
-                
-                # # if ((idx == 20) and (self.grid_world.who_holds[self.current_viewed_world][0] != -1)):
-                # #     self.grid_world.choices[self.current_viewed_world][self.grid_world.who_holds[self.current_viewed_world][0]][0] = 2
-            
-                # ## CODE TO SHOOT / PASS
-                # if ((idx == 20) and (agent_with_ball_id != -1)):
-                #     self.grid_world.choices[self.current_viewed_world][agent_with_ball_id][0] = 1
-                # # else:
-                # #     self.grid_world.choices[self.current_viewed_world][agent_with_ball_id][0] = 0
-                
                 agents_state = self.run_policy(agents_state)
                 if passing:
                     self.get_velocity_angle_for_ball_pass(self.current_viewed_world, 
-                                                              self.grid_world.who_holds[self.current_viewed_world][0], 20.0)
-                # print(" fffffffffffffff ")
+                                                          self.grid_world.who_holds[self.current_viewed_world][0], PASSING_VELOCITY)
                 
                 t = time.time()
                 self.grid_world.step()
