@@ -151,7 +151,7 @@ class SimulationPolicies:
 
         desired_direction = (np.arctan2(dy, dx) + np.pi) % (2 * np.pi) + np.pi
 
-        self.grid_world.action_data[world_index, agent_index] = torch.tensor([pass_velocity, desired_direction])
+        self.grid_world.action_data[world_index] = torch.tensor([pass_velocity, desired_direction])
 
     def different_goto_position(self, world_index, agent_index, goal_position, desired_velocity):
         # Get the agent's current position and facing angle
@@ -202,7 +202,7 @@ class SimulationPolicies:
         self.d(print(x))
         self.d(print(y))
         self.make_pass(world_index, agent_index, (x, y), desired_velocity)
-        self.d(print(self.grid_world.action_data[world_index, agent_index]))
+        self.d(print(self.grid_world.action_data[world_index]))
 
     def run_around_and_defend_initialize(self):
         # Initialize agent states

@@ -12,7 +12,7 @@ enum class ExportID : uint32_t {
     NumExports,
     BallLoc,
     WhoHolds,
-    ActionData,
+    PassingData,
     Choice,
 };
 
@@ -51,13 +51,17 @@ struct CourtPos {
     float facing;
 };
 
-struct ActionData {
+struct PassingData {
     float i1;
     float i2;
 };
 
 struct BallReference {
    Entity theBall;
+};
+
+struct GameReference {
+    Entity theGame;
 };
 
 struct PlayerID {
@@ -88,12 +92,15 @@ struct Agent : public madrona::Archetype<
     CourtPos,
     PlayerID,
     PlayerStatus,
-    PlayerDecision,
-    ActionData
+    PlayerDecision
 > {};
 
 struct BallArchetype : public madrona::Archetype<
     BallState,
     BallStatus
+> {};
+
+struct GameState : public madrona::Archetype<
+    PassingData
 > {};
 }
