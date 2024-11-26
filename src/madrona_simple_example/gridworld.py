@@ -25,7 +25,7 @@ class GridWorld:
         self.player_pos = self.sim.player_tensor().to_torch() #new player position tensor
         self.ball_pos = self.sim.ball_tensor().to_torch()
         self.who_holds = self.sim.held_tensor().to_torch()
-        self.action_data = self.sim.action_data_tensor().to_torch()
+        self.passing_data = self.sim.passing_data_tensor().to_torch()
         self.choices = self.sim.choice_tensor().to_torch()
 
     def step(self):
