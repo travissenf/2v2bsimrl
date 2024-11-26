@@ -36,6 +36,7 @@ public:
     MGR_EXPORT madrona::py::Tensor actionTensor() const;
     MGR_EXPORT madrona::py::Tensor ballTensor() const;
     MGR_EXPORT madrona::py::Tensor heldTensor() const;
+    MGR_EXPORT madrona::py::Tensor dataTensor() const;
     MGR_EXPORT madrona::py::Tensor choiceTensor() const;
 
 private:

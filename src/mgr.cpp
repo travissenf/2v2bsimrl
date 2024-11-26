@@ -261,6 +261,12 @@ Tensor Manager::heldTensor() const
         {impl_->cfg.numWorlds, 2});
 }
 
+Tensor Manager::dataTensor() const
+{
+    return impl_->exportTensor(ExportID::ActionData, TensorElementType::Float32,
+        {impl_->cfg.numWorlds, impl_->cfg.numPlayers, 2});
+}
+
 Tensor Manager::choiceTensor() const
 {
     return impl_->exportTensor(ExportID::Choice, TensorElementType::Int8,
