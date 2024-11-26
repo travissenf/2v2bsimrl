@@ -59,7 +59,7 @@ void changeBallToInPass(Engine &ctx, float th, float v, PlayerStatus &player_sta
     BallState* state = &ctx.get<BallState>(ctx.singleton<BallReference>().theBall);
     status->ballState = BallStatesPossibilities::BALL_IN_PASS;
     
-    player_status->hasBall = false;
+    player_status.hasBall = false;
 
     status->heldBy = -1;
     status->whoPassed = id.id;

@@ -24,6 +24,7 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &)
     registry.registerComponent<AgentList>();
     registry.registerComponent<PlayerStatus>();
     registry.registerComponent<PlayerDecision>();
+    registry.registerComponent<ActionData>();
 
     registry.registerArchetype<BallArchetype>();
     registry.registerArchetype<Agent>();
@@ -37,6 +38,7 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &)
     registry.exportColumn<Agent, Action>((uint32_t)ExportID::Action);
     registry.exportColumn<Agent, CourtPos>((uint32_t)ExportID::CourtPos);
     registry.exportColumn<Agent, PlayerDecision>((uint32_t)ExportID::Choice);
+    registry.exportColumn<Agent, ActionData>((uint32_t)ExportID::ActionData);
 
     registry.exportColumn<BallArchetype, BallState>((uint32_t)ExportID::BallLoc);
     registry.exportColumn<BallArchetype, BallStatus>((uint32_t)ExportID::WhoHolds);
@@ -48,7 +50,8 @@ inline void takePlayerAction(Engine &ctx,
                  CourtPos &court_pos,
                  PlayerID &id, 
                  PlayerStatus &status, 
-                 PlayerDecision &decision)
+                 PlayerDecision &decision,
+                 ActionData &action_data)
                 //  
                 
 {
@@ -76,7 +79,7 @@ inline void takePlayerAction(Engine &ctx,
 
                 // int th = 2;
                 // int v = 20;
-                changeBallToInPass(ctx, action.thdes, action.vdes, status, id);
+                changeBallToInPass(ctx, action_data.i2, action_data.i1, status, id);
             }
             break;
         }
@@ -179,7 +182,7 @@ void Sim::setupTasks(TaskGraphManager &taskgraph_mgr,
 {
     TaskGraphBuilder &builder = taskgraph_mgr.init(0);
     auto tickfunc = builder.addToGraph<ParallelForNode<Engine, takePlayerAction,
-        Action, CourtPos, PlayerID, PlayerStatus, PlayerDecision>>({});
+        Action, CourtPos, PlayerID, PlayerStatus, PlayerDecision, ActionData>>({});
     auto ballfunc = builder.addToGraph<ParallelForNode<Engine, balltick,
         BallState, BallStatus>>({tickfunc}); 
     builder.addToGraph<ParallelForNode<Engine, postprocess,
