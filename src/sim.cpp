@@ -24,13 +24,15 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &)
     registry.registerComponent<AgentList>();
     registry.registerComponent<PlayerStatus>();
     registry.registerComponent<PlayerDecision>();
-    registry.registerComponent<ActionData>();
+    registry.registerComponent<PassingData>();
 
     registry.registerArchetype<BallArchetype>();
     registry.registerArchetype<Agent>();
+    registry.registerArchetype<GameState>();
 
     registry.registerSingleton<BallReference>();
     registry.registerSingleton<AgentList>();
+    registry.registerSingleton<GameReference>();
 
     // registry.registerArchetype<PlayerAgent>();
 
@@ -38,7 +40,8 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &)
     registry.exportColumn<Agent, Action>((uint32_t)ExportID::Action);
     registry.exportColumn<Agent, CourtPos>((uint32_t)ExportID::CourtPos);
     registry.exportColumn<Agent, PlayerDecision>((uint32_t)ExportID::Choice);
-    registry.exportColumn<Agent, ActionData>((uint32_t)ExportID::ActionData);
+
+    registry.exportColumn<GameState, PassingData>((uint32_t)ExportID::PassingData);
 
     registry.exportColumn<BallArchetype, BallState>((uint32_t)ExportID::BallLoc);
     registry.exportColumn<BallArchetype, BallStatus>((uint32_t)ExportID::WhoHolds);
@@ -50,8 +53,7 @@ inline void takePlayerAction(Engine &ctx,
                  CourtPos &court_pos,
                  PlayerID &id, 
                  PlayerStatus &status, 
-                 PlayerDecision &decision,
-                 ActionData &action_data)
+                 PlayerDecision &decision)
                 //  
                 
 {
@@ -77,9 +79,8 @@ inline void takePlayerAction(Engine &ctx,
                 status.hasBall = false;
                 status.justShot = false;
 
-                // int th = 2;
-                // int v = 20;
-                changeBallToInPass(ctx, action_data.i2, action_data.i1, status, id);
+                PassingData* passing_data = &ctx.get<PassingData>(ctx.singleton<GameReference>().theGame);
+                changeBallToInPass(ctx, passing_data->i2, passing_data->i1, status, id);
             }
             break;
         }
@@ -182,7 +183,7 @@ void Sim::setupTasks(TaskGraphManager &taskgraph_mgr,
 {
     TaskGraphBuilder &builder = taskgraph_mgr.init(0);
     auto tickfunc = builder.addToGraph<ParallelForNode<Engine, takePlayerAction,
-        Action, CourtPos, PlayerID, PlayerStatus, PlayerDecision, ActionData>>({});
+        Action, CourtPos, PlayerID, PlayerStatus, PlayerDecision>>({});
     auto ballfunc = builder.addToGraph<ParallelForNode<Engine, balltick,
         BallState, BallStatus>>({tickfunc}); 
     builder.addToGraph<ParallelForNode<Engine, postprocess,
@@ -199,6 +200,9 @@ Sim::Sim(Engine &ctx, const Config &cfg, const WorldInit &init)
     ctx.singleton<BallReference>().theBall = ctx.makeEntity<BallArchetype>();
     ctx.get<BallState>(ctx.singleton<BallReference>().theBall) = BallState {CENTER_X, CENTER_Y, CENTER_Z,};
     ctx.get<BallStatus>(ctx.singleton<BallReference>().theBall) = BallStatus {PLAYER_STARTING_WITH_BALL, NOT_PREVIOUSLY_SHOT};
+
+    ctx.singleton<GameReference>().theGame = ctx.makeEntity<GameState>();
+    ctx.get<PassingData>(ctx.singleton<GameReference>().theGame) = PassingData {0.0, 0.0};
 
     for (int i = 0; i < court->numPlayers; i++){
         Entity agent = ctx.makeEntity<Agent>();
