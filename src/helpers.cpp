@@ -26,13 +26,6 @@ CourtPos updateCourtPosition(const CourtPos &current_pos, const Action &action) 
         new_player_pos.v = action.vdes;
         new_player_pos.th = action.thdes;
     } 
-    
-    // else {
-    //     ax += ((MAX_V_CHANGE * D_T) / dist) * lx;
-    //     ay += ((MAX_V_CHANGE * D_T) / dist) * ly;
-    //     new_player_pos.v = sqrt(ax * ax + ay * ay);
-    //     new_player_pos.th = atan2(ay, ax);
-    // }
 
     new_player_pos.om = action.omdes;
     // replace court_pos with our new positions

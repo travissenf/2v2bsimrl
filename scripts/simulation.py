@@ -85,7 +85,8 @@ class Simulation(SimulationPolicies):
         self.view_angle = 0
 
         # Set debug mode to whatever the user inputted
-        # self.setDebugMode(self.args.debug_mode)
+        print(self.args.debug_mode, " is on?")
+        self.setDebugMode(self.args.debug_mode)
 
     def _load_assets(self):
         # Load images and scale them
