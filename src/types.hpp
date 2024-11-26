@@ -10,7 +10,6 @@ enum class ExportID : uint32_t {
     Action,
     CourtPos, // Added a player position archetype for sim
     NumExports,
-    // PlayerStatus,
     BallLoc,
     WhoHolds,
     ActionData,

@@ -22,8 +22,7 @@ P_LOC_VAL_TO_INDEX = {"x": 0, "y": 1, "theta": 2, "velocity": 3, "angular v": 4,
 B_LOC_INDEX_TO_VAL = {0: "x", 1: "y", 2: "theta", 3: "velocity"}
 
 SUPPORTED_POLICIES = {'run_in_line', 'run_and_defend', 'do_nothing'}
-
-PASSING_VELOCITY = 20.0
+PASSING_VELOCITY = 52.0
 
 class Simulation(SimulationPolicies):
     def __init__(self):

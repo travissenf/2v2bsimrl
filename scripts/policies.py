@@ -20,6 +20,7 @@ PLAYERS_PER_TEAM = 5
 
 LEFT_HOOP_X = -41.75
 RIGHT_HOOP_X = 41.75
+PASSING_VELOCITY = 52.0
 
 class SimulationPolicies:
     def __init__(debug_mode_on=False):
@@ -229,7 +230,7 @@ class SimulationPolicies:
         x = x * 0.95 + self.grid_world.ball_pos[self.current_viewed_world][0].item() * 0.05
         y = y * 0.95 + self.grid_world.ball_pos[self.current_viewed_world][1].item() * 0.05
         gpos = (x, y)
-        self.different_goto_position(self.current_viewed_world, cur_player, gpos, 50.0)
+        self.different_goto_position(self.current_viewed_world, cur_player, gpos, 20.0)
 
 
     def run_around_and_defend_policy(self, agents_state):
@@ -249,7 +250,7 @@ class SimulationPolicies:
                                                  agent_index, 
                                                  (self.grid_world.ball_pos[self.current_viewed_world][0].item(),
                                                   self.grid_world.ball_pos[self.current_viewed_world][1].item()), 
-                                                 50.0)
+                                                 20.0)
                 elif state == 'running':
                     ypos = (int(self.elapsed_time) // 6) % 2
                     xpos = (agent_index // 5)
@@ -263,11 +264,11 @@ class SimulationPolicies:
                         gpos = (-28.0 + xpos * 56.0, -16.0 + ypos * 18.0)
                     elif (agent_index % 5 == 4):
                         gpos = (-40.0 + xpos * 80.0, ypos * 18.0)
-                    self.different_goto_position(self.current_viewed_world, agent_index, gpos, 50.0)
+                    self.different_goto_position(self.current_viewed_world, agent_index, gpos, 20.0)
                 elif (state == 'defending'):
                     self.defend_player(agent_index, (agent_index + 5) % 10)
                 elif (state == 'passing'):
-                    self.get_velocity_angle_for_ball_pass(self.current_viewed_world, agent_index, 40)
+                    self.get_velocity_angle_for_ball_pass(self.current_viewed_world, agent_index, PASSING_VELOCITY)
                     self.d(print("PASSING: \n\n ", self.grid_world.actions[self.current_viewed_world, agent_index]))
         return agents_state
 
