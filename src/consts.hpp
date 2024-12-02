@@ -39,6 +39,10 @@ constexpr double CATCHING_WINGSPAN = 2.75;
 constexpr double RADIANS_OF_45_DEGREES = 0.78539;
 // 180 degrees = pi => 45 degrees = pi / 180 * 45 
 
+constexpr float LEFT_INBOUND_X = -40.0;
+constexpr float RIGHT_INBOUND_X = 40.0;
+constexpr float LEFT_INBOUND_Y = 10;
+constexpr float RIGHT_INBOUND_Y = -10;
 
 // constexpr char ASSET_PATH[] = "assets/";
 // constexpr char CONFIG_FILE[] = "config/settings.cfg";
