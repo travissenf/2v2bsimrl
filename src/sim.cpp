@@ -25,6 +25,7 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &)
     registry.registerComponent<PlayerStatus>();
     registry.registerComponent<PlayerDecision>();
     registry.registerComponent<PassingData>();
+    registry.registerComponent<Scorecard>();
 
     registry.registerArchetype<BallArchetype>();
     registry.registerArchetype<Agent>();
@@ -203,6 +204,7 @@ Sim::Sim(Engine &ctx, const Config &cfg, const WorldInit &init)
 
     ctx.singleton<GameReference>().theGame = ctx.makeEntity<GameState>();
     ctx.get<PassingData>(ctx.singleton<GameReference>().theGame) = PassingData {0.0, 0.0};
+    ctx.get<Scorecard>(ctx.singleton<GameReference>().theGame) = Scorecard {0, 0, 1, 0.0, 0.0};
 
     for (int i = 0; i < court->numPlayers; i++){
         Entity agent = ctx.makeEntity<Agent>();
