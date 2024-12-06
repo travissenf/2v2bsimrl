@@ -284,4 +284,10 @@ Tensor Manager::choiceTensor() const
     return impl_->exportTensor(ExportID::Choice, TensorElementType::Int8,
         {impl_->cfg.numWorlds, impl_->cfg.numPlayers, 1});
 }
+
+Tensor Manager::foulCallTensor() const
+{
+    return impl_->exportTensor(ExportID::CalledFoul, TensorElementType::Int8,
+        {impl_->cfg.numWorlds, impl_->cfg.numPlayers, 1});
+}
 }
