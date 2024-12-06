@@ -27,6 +27,7 @@ class GridWorld:
         self.who_holds = self.sim.held_tensor().to_torch()
         self.passing_data = self.sim.passing_data_tensor().to_torch()
         self.choices = self.sim.choice_tensor().to_torch()
+        self.foul_call = self.sim.foul_call_tensor().to_torch()
 
     def step(self):
         self.sim.step()

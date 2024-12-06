@@ -471,8 +471,16 @@ class Simulation(SimulationPolicies):
             try:
                 # Read and validate inputs
                 values = [float(entry.get()) for entry in entries]
+                print(values)
                 for i in range(len(values)):
                     self.grid_world.player_pos[self.current_viewed_world][player_id][i] = values[i]
+                    if (i == 2):
+                        self.grid_world.actions[self.current_viewed_world][player_id][1] = values[i]
+                    elif (i == 3):
+                        self.grid_world.actions[self.current_viewed_world][player_id][0] = values[i]
+                    elif (i == 4):
+                        self.grid_world.actions[self.current_viewed_world][player_id][2] = values[i]
+
                 # self.float_values = values  # Store the values
                 popup.destroy()  # Close the popup
             except ValueError:
@@ -539,7 +547,12 @@ class Simulation(SimulationPolicies):
             for j in range(player_pos_shape[1]):
                 key = P_LOC_INDEX_TO_VAL[j]
                 self.grid_world.player_pos[self.current_viewed_world][i][j] = game_state["players"][i][key]
-
+                if (j == 2):
+                    self.grid_world.actions[self.current_viewed_world][i][1] = game_state["players"][i][key]
+                elif (j == 3):
+                    self.grid_world.actions[self.current_viewed_world][i][0] = game_state["players"][i][key]
+                elif (j == 4):
+                    self.grid_world.actions[self.current_viewed_world][i][2] = game_state["players"][i][key]
         # Load ball data
         for i in range(self.grid_world.ball_pos[self.current_viewed_world].shape[0]):
             key = B_LOC_INDEX_TO_VAL[i]
@@ -756,7 +769,6 @@ class Simulation(SimulationPolicies):
                     # Modify Travis's code, read player's status
                     elif event.key >= pygame.K_0 and event.key <= pygame.K_9 and not self.manipulation_mode:
                         self.open_player_input_window(event.key - pygame.K_0)
-
                         if self.args.visualize:
                             # Clear the screen or blit background as needed
                             if self.view_angle == 0:
@@ -829,8 +841,16 @@ class Simulation(SimulationPolicies):
                 
             else:
                 # When paused, ensure actions are zeroed out
-                self.grid_world.actions.zero_()
                 continue
+
+            for i in range(self.num_players):
+                foul = self.grid_world.foul_call[self.current_viewed_world][i].item()
+                if (foul == 1):
+                    print(f"block on player {i}")
+                elif (foul == 2):
+                    print(f"charge on player {i}")
+                elif (foul == 3):
+                    print(f"push on player {i}")
 
             # agents_state = self.run_policy(agents_state)
 

@@ -32,6 +32,46 @@ CourtPos updateCourtPosition(const CourtPos &current_pos, const Action &action) 
     return new_player_pos;
 }
 
+CourtPos updateCourtPositionStepped(const CourtPos &current_pos, const Action &action) {
+    CourtPos new_player_pos = current_pos;
+    float stepdt = D_T / COLLISION_CHECK_STEPS;
+
+    // Update the player positions, by just adding 1 right now. Here is where we can add random movement
+    new_player_pos.x += new_player_pos.v * cos(new_player_pos.th) * stepdt;
+    new_player_pos.y += new_player_pos.v * sin(new_player_pos.th) * stepdt;
+    new_player_pos.facing += new_player_pos.om * stepdt;
+
+    float dx = action.vdes * cos(action.thdes);
+    float dy = action.vdes * sin(action.thdes);
+
+    float ax = new_player_pos.v * cos(new_player_pos.th);
+    float ay = new_player_pos.v * sin(new_player_pos.th);
+
+    float lx = dx - ax;
+    float ly = dy - ay;
+
+    float dist = sqrt(lx * lx + ly * ly);
+
+    if (dist <= MAX_V_CHANGE * stepdt){ // always true for now
+        new_player_pos.v = action.vdes;
+        new_player_pos.th = action.thdes;
+    } 
+
+    new_player_pos.om = action.omdes;
+    // replace court_pos with our new positions
+    return new_player_pos;
+}
+
+CourtPos cancelPrevMovementStep(const CourtPos &current_pos, const Action &action) {
+    CourtPos new_player_pos = current_pos;
+    float stepdt = D_T / COLLISION_CHECK_STEPS;
+
+    new_player_pos.x -= new_player_pos.v * cos(new_player_pos.th) * stepdt;
+    new_player_pos.y -= new_player_pos.v * sin(new_player_pos.th) * stepdt;
+    
+    return new_player_pos;
+}
+
 void updateShotBallState(BallState &current_ball, const BallStatus &ball_status){
     std::mt19937 gen;
     std::uniform_real_distribution<> dis(15.0, 20.0);

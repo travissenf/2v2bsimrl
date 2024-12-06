@@ -11,6 +11,8 @@ namespace madsimple {
 
 // Function declarations
 CourtPos updateCourtPosition(const CourtPos &current_pos, const Action &action);
+CourtPos updateCourtPositionStepped(const CourtPos &current_pos, const Action &action);
+CourtPos cancelPrevMovementStep(const CourtPos &current_pos, const Action &action);
 
 BallState updateBallState(const BallState &current_ball, const BallStatesPossibilities &ball_held, 
                           const madrona::Entity *players, const Engine &ctx, float dt);

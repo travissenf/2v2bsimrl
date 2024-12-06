@@ -81,6 +81,7 @@ NB_MODULE(_madrona_simple_example_cpp, m) {
         .def("passing_data_tensor", &Manager::passingDataTensor)
         .def("scorecard_tensor", &Manager::gameStateTensor)
         .def("choice_tensor", &Manager::choiceTensor)
+        .def("foul_call_tensor", &Manager::foulCallTensor)
     ;
 }
 
