@@ -2,6 +2,7 @@
 #define CONSTS_HPP
 
 #include <cmath>
+#include <array>
 
 constexpr int COURT_WIDTH = 94.0;
 constexpr int COURT_HEIGHT = 50.0;
@@ -20,9 +21,10 @@ constexpr double CENTER_Y = 0.0;
 constexpr double CENTER_Z = 0.0;
 
 constexpr double GRAVITY = 32.1741;
-constexpr double MAX_V_CHANGE = 10000.0;
+constexpr double MAX_V_CHANGE = 100000.0;
 
 constexpr int ACTIVE_PLAYERS = 10;
+constexpr int COLLISION_CHECK_STEPS = 4;
 
 
 constexpr int PLAYER_STARTING_WITH_BALL = 5;
