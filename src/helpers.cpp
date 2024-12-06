@@ -162,5 +162,7 @@ float probabilityOfShot(float distance_from_basket,
     float net_distance = distance_from_basket - 18;
     float net_contension = contension - 50;
     float new_percentage = shot_make_percentage + net_distance + net_contension;
-    return std::min(99, std::max(1, new_percentage));
+    return std::min((float)99.0, std::max((float)1.0, new_percentage));
 } 
+
+}
