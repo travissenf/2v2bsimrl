@@ -164,3 +164,45 @@ float probabilityOfShot(float distance_from_basket,
     float new_percentage = shot_make_percentage + net_distance + net_contension;
     return std::min(99, std::max(1, new_percentage));
 } 
+
+void makePlayerInboundBall(BallState &ball_state,
+                           BallStatus &ball_status,
+                           CourtPos &inbounding_player_position,
+                           PlayerDecision &inbounding_player_decision,
+                           PlayerStatus &inbounding_player_status,
+                           PlayerID &id, 
+                           CourPos &other_player_position,
+                           bool inboundLeft) {
+    // step 1: place player outside the court
+    if (inboundLeft) {
+        inbounding_player_position[0] = LEFT_INBOUND_X;
+        inbounding_player_position[1] = LEFT_INBOUND_Y;
+    } else {
+        inbounding_player_position[0] = RIGHT_INBOUND_X;
+        inbounding_player_position[1] = RIGHT_INBOUND_Y;
+    }
+    inbounding_player_position[2] = 0.0;
+    inbounding_player_position[3] = 0.0;
+
+    // step 2: give player ball
+    inbounding_player_status.hasBall = true;
+
+    // step 3: put other player close to player outside of the court
+    if (inboundLeft) {
+        other_player_position[0] = LEFT_INBOUND_X + 10;
+        other_player_position[1] = LEFT_INBOUND_Y;
+    } else {
+        other_player_position[0] = RIGHT_INBOUND_X - 10;
+        other_player_position[1] = RIGHT_INBOUND_Y
+    }
+    other_player_position[2] = 0.0;
+    other_player_position[3] = 0.0; 
+
+    // step 4: make player with ball, pass ball 
+    inbounding_player_decision = PlayerDecision::PASS;
+
+    // step5: update ball status and location
+    ball_state[0] = inbounding_player_position[0];
+    ball_state[1] = inbounding_player_position[1];
+    ball_status.heldBy = id;
+}
