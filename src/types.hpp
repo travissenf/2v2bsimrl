@@ -14,6 +14,7 @@ enum class ExportID : uint32_t {
     WhoHolds,
     PassingData,
     Choice,
+    CalledFoul
 };
 
 enum class PlayerDecision : int8_t {
@@ -21,6 +22,13 @@ enum class PlayerDecision : int8_t {
     SHOOT = 1,
     PASS = 2,
     NOTHING = 3,
+};
+
+enum class FoulID : int8_t {
+    NO_CALL = 0,
+    BLOCK = 1,
+    CHARGE = 2,
+    PUSH = 3,
 };
 
 enum BallStatesPossibilities {
@@ -92,7 +100,8 @@ struct Agent : public madrona::Archetype<
     CourtPos,
     PlayerID,
     PlayerStatus,
-    PlayerDecision
+    PlayerDecision,
+    FoulID
 > {};
 
 struct BallArchetype : public madrona::Archetype<

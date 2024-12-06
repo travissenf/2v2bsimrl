@@ -25,6 +25,7 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &)
     registry.registerComponent<PlayerStatus>();
     registry.registerComponent<PlayerDecision>();
     registry.registerComponent<PassingData>();
+    registry.registerComponent<FoulID>();
 
     registry.registerArchetype<BallArchetype>();
     registry.registerArchetype<Agent>();
@@ -40,24 +41,27 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &)
     registry.exportColumn<Agent, Action>((uint32_t)ExportID::Action);
     registry.exportColumn<Agent, CourtPos>((uint32_t)ExportID::CourtPos);
     registry.exportColumn<Agent, PlayerDecision>((uint32_t)ExportID::Choice);
+    registry.exportColumn<Agent, FoulID>((uint32_t)ExportID::CalledFoul);
 
     registry.exportColumn<GameState, PassingData>((uint32_t)ExportID::PassingData);
 
     registry.exportColumn<BallArchetype, BallState>((uint32_t)ExportID::BallLoc);
     registry.exportColumn<BallArchetype, BallStatus>((uint32_t)ExportID::WhoHolds);
 
+
+
 }
 
 inline void takePlayerAction(Engine &ctx,
-                 Action &action,
                  CourtPos &court_pos,
                  PlayerID &id, 
                  PlayerStatus &status, 
-                 PlayerDecision &decision)
+                 PlayerDecision &decision, 
+                 FoulID &foul)
                 //  
                 
 {
-    action.vdes = std::min(action.vdes, (float)30.0);
+    foul = FoulID::NO_CALL; // reset foul state
     if (canBallBeCaught(ctx, id)) {
         if (catchBallIfClose(ctx, court_pos, id, status)) {
             return;
@@ -96,9 +100,68 @@ inline void takePlayerAction(Engine &ctx,
 
         default: break;
     }
-
-    court_pos = updateCourtPosition(court_pos, action);
 }
+
+inline void movePlayerStep(Engine &ctx,
+                     Action &action,
+                     CourtPos &court_pos)
+{
+    action.vdes = std::min(action.vdes, (float)30.0);
+    court_pos = updateCourtPositionStepped(court_pos, action);
+}
+
+
+inline void checkForBlockCharge(Engine &ctx,
+                 Action &action,
+                 CourtPos &court_pos,
+                 PlayerID &id, 
+                 PlayerStatus &status, 
+                 PlayerDecision &decision,
+                 FoulID &foul)
+{
+    auto players = ctx.singleton<AgentList>().e;
+    for (int i = 0; i < ACTIVE_PLAYERS; i++){
+        if (i == id.id){
+            continue;
+        }
+        Entity p = players[i];
+
+        float distance = std::sqrt(std::pow(
+            court_pos.x - ctx.get<CourtPos>(p).x, 2) + std::pow(court_pos.y - ctx.get<CourtPos>(p).y, 2
+            ));
+
+         if (distance <= 1.5){ // If they collided, check
+            if ((i / FIRST_TEAM2_PLAYER) == (id.id / FIRST_TEAM2_PLAYER)){ // if same team
+                court_pos = cancelPrevMovementStep(court_pos, action); // revert the move
+            } else {
+                int whoHasBall = ctx.get<BallStatus>(ctx.singleton<BallReference>().theBall).heldBy;
+                if ((ctx.get<CourtPos>(p).v < 0.5) && (court_pos.v < 0.5)){ // if both players arent really moving
+                    // do nothing
+                } else if (((id.id / FIRST_TEAM2_PLAYER) == (whoHasBall / FIRST_TEAM2_PLAYER))
+                    && (id.id != whoHasBall)){ // If we are off ball on offense
+                    if (court_pos.v >= 0.5){ // and we run into them
+                        foul = FoulID::CHARGE;
+                    }
+                } else if (id.id == whoHasBall){ // If we have the ball
+                    if (ctx.get<CourtPos>(p).v < 0.5){ // and they are not moving
+                        foul = FoulID::CHARGE;
+                    }
+                } else if (i == whoHasBall) { // If on defense, and player we collide with has the ball
+                    if (court_pos.v >= 0.5){ // if we are moving
+                        foul = FoulID::BLOCK;
+                    }
+                } else if ((id.id / FIRST_TEAM2_PLAYER) != (whoHasBall / FIRST_TEAM2_PLAYER)
+                    && (i != whoHasBall)){ // if on defense, player with we collide with doesnt have ball
+                    if (ctx.get<CourtPos>(p).v < 0.5) { // if they are not moving
+                        foul = FoulID::PUSH;
+                    }
+                }
+                court_pos = cancelPrevMovementStep(court_pos, action); // revert the move
+            }
+         } 
+    }
+}
+
 
 inline void balltick(Engine &ctx,
                      BallState &ball_state,
@@ -182,10 +245,28 @@ void Sim::setupTasks(TaskGraphManager &taskgraph_mgr,
                      const Config &)
 {
     TaskGraphBuilder &builder = taskgraph_mgr.init(0);
-    auto tickfunc = builder.addToGraph<ParallelForNode<Engine, takePlayerAction,
-        Action, CourtPos, PlayerID, PlayerStatus, PlayerDecision>>({});
+    
+    auto actionfunc = builder.addToGraph<ParallelForNode<Engine, takePlayerAction,
+        CourtPos, PlayerID, PlayerStatus, PlayerDecision, FoulID>>({});
+
+    auto movementfunc = builder.addToGraph<ParallelForNode<Engine, movePlayerStep,
+        Action, CourtPos>>({actionfunc});
+
+    auto blockchargecheck = builder.addToGraph<ParallelForNode<Engine, checkForBlockCharge,
+        Action, CourtPos, PlayerID, PlayerStatus, PlayerDecision, FoulID>>({movementfunc});
+
+    for (int i = 1; i < COLLISION_CHECK_STEPS; i++){
+
+        movementfunc = builder.addToGraph<ParallelForNode<Engine, movePlayerStep,
+            Action, CourtPos>>({blockchargecheck});
+
+        blockchargecheck = builder.addToGraph<ParallelForNode<Engine, checkForBlockCharge,
+            Action, CourtPos, PlayerID, PlayerStatus, PlayerDecision, FoulID>>({movementfunc});
+    }
+
     auto ballfunc = builder.addToGraph<ParallelForNode<Engine, balltick,
-        BallState, BallStatus>>({tickfunc}); 
+        BallState, BallStatus>>({blockchargecheck});
+
     builder.addToGraph<ParallelForNode<Engine, postprocess,
         PlayerStatus>>({ballfunc});
 }
@@ -216,6 +297,7 @@ Sim::Sim(Engine &ctx, const Config &cfg, const WorldInit &init)
         };
         ctx.get<PlayerID>(agent).id = i;
         ctx.get<PlayerStatus>(agent) = {false, false};
+        ctx.get<FoulID>(agent) = FoulID::NO_CALL;
         ctx.singleton<AgentList>().e[i] = agent;
     }
     

@@ -80,6 +80,7 @@ NB_MODULE(_madrona_simple_example_cpp, m) {
         .def("held_tensor", &Manager::heldTensor)
         .def("passing_data_tensor", &Manager::passingDataTensor)
         .def("choice_tensor", &Manager::choiceTensor)
+        .def("foul_call_tensor", &Manager::foulCallTensor)
     ;
 }
 
