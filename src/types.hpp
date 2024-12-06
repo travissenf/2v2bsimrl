@@ -57,7 +57,7 @@ struct StaticPlayerAttributes {
     float shootingPercentage3Points;
     float shootingPercentageFieldGoal;
     float runningSpeedMph;
-}
+};
 
 struct PassingData {
     float i1;

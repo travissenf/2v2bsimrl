@@ -43,9 +43,7 @@ bool catchBallIfClose(Engine &ctx,
                       PlayerID &id, 
                       PlayerStatus &status);
 
-float probabilityOfShot(float distance_from_basket,
-                        float contension,
-                        float shot_make_percentage);
+float probabilityOfShot(float distance_from_basket);
 
 void makePlayerInboundBall(BallState &ball_state,
                            BallStatus &ball_status,
@@ -53,7 +51,7 @@ void makePlayerInboundBall(BallState &ball_state,
                            PlayerDecision &inbounding_player_decision,
                            PlayerStatus &inbounding_player_status,
                            PlayerID &id, 
-                           CourPos &other_player_position,
+                           CourtPos &other_player_position,
                            bool inboundLeft);
 } // namespace madsimple
 
