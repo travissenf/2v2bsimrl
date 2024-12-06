@@ -138,11 +138,23 @@ inline void checkForBlockCharge(Engine &ctx,
                 court_pos = cancelPrevMovementStep(court_pos, action); // revert the move
             } else {
                 int whoHasBall = ctx.get<BallStatus>(ctx.singleton<BallReference>().theBall).heldBy;
+
+                float v1_x = -1 * court_pos.v * cos(court_pos.th);
+                float v1_y = -1 * court_pos.v * sin(court_pos.th);
+                float v2_x = ctx.get<CourtPos>(p).v * cos(ctx.get<CourtPos>(p).th);
+                float v2_y = ctx.get<CourtPos>(p).v * sin(ctx.get<CourtPos>(p).th);
+                
+                
+                float result_x = v1_x + v2_x;
+                float result_y = v1_y + v2_y;
+                
+                float impact_factor = sqrt(pow(v1_x + v2_x, 2) + pow(v1_y + v2_y, 2));
+
                 if ((ctx.get<CourtPos>(p).v < 0.5) && (court_pos.v < 0.5)){ // if both players arent really moving
                     // do nothing
                 } else if (((id.id / FIRST_TEAM2_PLAYER) == (whoHasBall / FIRST_TEAM2_PLAYER))
                     && (id.id != whoHasBall)){ // If we are off ball on offense
-                    if (court_pos.v >= 0.5){ // and we run into them
+                    if ((impact_factor >= 1.0) && (court_pos.v >= 0.5)){ // and we run into them
                         foul = FoulID::CHARGE;
                     }
                 } else if (id.id == whoHasBall){ // If we have the ball
@@ -150,7 +162,7 @@ inline void checkForBlockCharge(Engine &ctx,
                         foul = FoulID::CHARGE;
                     }
                 } else if (i == whoHasBall) { // If on defense, and player we collide with has the ball
-                    if (court_pos.v >= 0.5){ // if we are moving
+                    if ((impact_factor >= 1.0) && (court_pos.v >= 0.5)){ // if we are moving
                         foul = FoulID::BLOCK;
                     }
                 } else if ((id.id / FIRST_TEAM2_PLAYER) != (whoHasBall / FIRST_TEAM2_PLAYER)
@@ -159,7 +171,9 @@ inline void checkForBlockCharge(Engine &ctx,
                         foul = FoulID::PUSH;
                     }
                 }
-                court_pos = cancelPrevMovementStep(court_pos, action); // revert the move
+                if (foul != FoulID::NO_CALL){
+                    court_pos = cancelPrevMovementStep(court_pos, action); // revert the move
+                }
             }
          } 
     }

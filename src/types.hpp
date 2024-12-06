@@ -116,7 +116,7 @@ struct Agent : public madrona::Archetype<
     PlayerID,
     PlayerStatus,
     PlayerDecision,
-    FoulID
+    FoulID,
     StaticPlayerAttributes
 > {};
 
