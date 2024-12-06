@@ -267,6 +267,18 @@ Tensor Manager::passingDataTensor() const
         {impl_->cfg.numWorlds, 2});
 }
 
+Tensor Manager::gameStateTensor() const
+{
+    return impl_->exportTensor(ExportID::Scorecard, TensorElementType::Float32,
+        {impl_->cfg.numWorlds, 5});
+}
+
+Tensor Manager::playerAttributesTensor() const
+{
+    return impl_->exportTensor(ExportID::StaticPlayerAttributes, TensorElementType::Float32,
+        {impl_->cfg.numWorlds, impl_->cfg.numPlayers, 3});
+}
+
 Tensor Manager::choiceTensor() const
 {
     return impl_->exportTensor(ExportID::Choice, TensorElementType::Int8,

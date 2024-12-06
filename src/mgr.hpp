@@ -37,6 +37,8 @@ public:
     MGR_EXPORT madrona::py::Tensor ballTensor() const;
     MGR_EXPORT madrona::py::Tensor heldTensor() const;
     MGR_EXPORT madrona::py::Tensor passingDataTensor() const;
+    MGR_EXPORT madrona::py::Tensor gameStateTensor() const;
+    MGR_EXPORT madrona::py::Tensor playerAttributesTensor() const;
     MGR_EXPORT madrona::py::Tensor choiceTensor() const;
     MGR_EXPORT madrona::py::Tensor foulCallTensor() const;
 

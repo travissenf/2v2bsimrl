@@ -17,6 +17,7 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &)
 
     registry.registerComponent<Action>();
     registry.registerComponent<CourtPos>();
+    registry.registerComponent<StaticPlayerAttributes>();
     registry.registerComponent<BallState>();
     registry.registerComponent<BallStatus>();
     registry.registerComponent<BallReference>();
@@ -26,6 +27,7 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &)
     registry.registerComponent<PlayerDecision>();
     registry.registerComponent<PassingData>();
     registry.registerComponent<FoulID>();
+    registry.registerComponent<Scorecard>();
 
     registry.registerArchetype<BallArchetype>();
     registry.registerArchetype<Agent>();
@@ -42,6 +44,7 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &)
     registry.exportColumn<Agent, CourtPos>((uint32_t)ExportID::CourtPos);
     registry.exportColumn<Agent, PlayerDecision>((uint32_t)ExportID::Choice);
     registry.exportColumn<Agent, FoulID>((uint32_t)ExportID::CalledFoul);
+    registry.exportColumn<Agent, StaticPlayerAttributes>((uint32_t)ExportID::StaticPlayerAttributes);
 
     registry.exportColumn<GameState, PassingData>((uint32_t)ExportID::PassingData);
 
@@ -284,6 +287,7 @@ Sim::Sim(Engine &ctx, const Config &cfg, const WorldInit &init)
 
     ctx.singleton<GameReference>().theGame = ctx.makeEntity<GameState>();
     ctx.get<PassingData>(ctx.singleton<GameReference>().theGame) = PassingData {0.0, 0.0};
+    ctx.get<Scorecard>(ctx.singleton<GameReference>().theGame) = Scorecard {0, 0, 1, 0.0, 0.0};
 
     for (int i = 0; i < court->numPlayers; i++){
         Entity agent = ctx.makeEntity<Agent>();
@@ -298,6 +302,7 @@ Sim::Sim(Engine &ctx, const Config &cfg, const WorldInit &init)
         ctx.get<PlayerID>(agent).id = i;
         ctx.get<PlayerStatus>(agent) = {false, false};
         ctx.get<FoulID>(agent) = FoulID::NO_CALL;
+        ctx.get<StaticPlayerAttributes>(agent) = {0.0, 0.0, 0.0};
         ctx.singleton<AgentList>().e[i] = agent;
     }
     

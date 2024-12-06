@@ -51,7 +51,7 @@ class Simulation(SimulationPolicies):
             self.run_policy = self.do_nothing
         # Constants
         self.PLAYER_CIRCLE_SIZE = 12
-        self.SCREEN_WIDTH, self.SCREEN_HEIGHT = 940, 500
+        self.SCREEN_WIDTH, self.SCREEN_HEIGHT = 940, 560
         self.FEET_TO_PIXELS = 10.0  # 10 pixels per foot
         self.dt = 0.1
         self.num_players = 10
@@ -70,6 +70,13 @@ class Simulation(SimulationPolicies):
         self.manipulation_mode = False
         self.selected_player = None
         self.current_viewed_world = 0
+        self.action_log = []
+        self.last_action = None
+        self.pending_action = None
+        self.pending_actions = []  # List to track ongoing passes and shots
+
+
+
 
         self.background_surface = pygame.surfarray.make_surface(
             np.transpose(cv2.cvtColor(background_img, cv2.COLOR_BGR2RGB), (1, 0, 2))
@@ -79,6 +86,12 @@ class Simulation(SimulationPolicies):
         pygame.init()
         self.screen = pygame.display.set_mode((self.SCREEN_WIDTH, self.SCREEN_HEIGHT))
         pygame.display.set_caption("Basketball Court Simulation")
+
+        # Load sound effects
+        self.shot_succeed_sound = pygame.mixer.Sound('asset/shot_succeed.mp3')
+        self.shot_missed_sound = pygame.mixer.Sound('asset/shot_missed.mp3')
+        self.pass_succeed_sound = pygame.mixer.Sound('asset/pass_succeed.mp3')
+        self.pass_failed_sound = pygame.mixer.Sound('asset/pass_failed.mp3')
 
         # Load assets
         self._load_assets()
@@ -111,6 +124,12 @@ class Simulation(SimulationPolicies):
 
         # Create simulator object
         self.grid_world = GridWorld(self.points, self.num_worlds, self.enable_gpu_sim, 0)
+
+    def get_team(self, player_id):
+        return 'A' if player_id < 5 else 'B'
+
+    def is_teammate(self, player_id1, player_id2):
+        return self.get_team(player_id1) == self.get_team(player_id2)
 
         
     # Asumming tensor is (num_worlds, 2 * num_players)
@@ -542,6 +561,105 @@ class Simulation(SimulationPolicies):
         self.grid_world.who_holds[self.current_viewed_world][0] = game_state["ball"]["who holds"]
         self.grid_world.who_holds[self.current_viewed_world][1] = game_state["ball"]["who shot"]
 
+    def display_action_log(self, screen):
+        # Draw a semi-transparent rectangle at the top
+        bar_height = 60  # Adjust as needed
+        bar_surface = pygame.Surface((self.SCREEN_WIDTH, bar_height))
+        bar_surface.set_alpha(128)  # Semi-transparent
+        bar_surface.fill((0, 0, 0))  # Black color
+        screen.blit(bar_surface, (0, 0))
+
+        # Render the action messages
+        font = pygame.font.SysFont(None, 24)
+        y_offset = 10  # Starting y position within the bar
+        for i, message in enumerate(reversed(self.action_log)):
+            text_surface = font.render(message, True, (255, 255, 255))
+            text_rect = text_surface.get_rect(topleft=(10, y_offset + i * 20))
+            screen.blit(text_surface, text_rect)
+
+    def check_pass_action(self, action, prev_ball_in_air, prev_ball_holder):
+        # current_ball_in_air = self.grid_world.ball_state[self.current_viewed_world].item()
+        current_ball_holder = self.grid_world.who_holds[self.current_viewed_world][0].item()
+        current_ball_in_air = current_ball_holder==-1
+
+        if not current_ball_in_air and current_ball_holder != -1:
+            # Ball is now held by someone
+            initiating_player = action['player_id']
+            if current_ball_holder == initiating_player:
+                # Pass failed, player still has the ball
+                message = f"[{self.elapsed_time:.1f}s]: Player {initiating_player} pass failed, still has the ball."
+                self.pass_failed_sound.play()
+            elif self.is_teammate(current_ball_holder, initiating_player):
+                # Pass succeeded
+                message = f"[{self.elapsed_time:.1f}s]: Player {initiating_player} pass succeeded to Player {current_ball_holder}."
+                self.pass_succeed_sound.play()
+            else:
+                # Pass failed, opponent stole the ball
+                message = f"[{self.elapsed_time:.1f}s]: Player {initiating_player} pass failed, Player {current_ball_holder} stole the ball."
+                self.pass_failed_sound.play()
+            self.action_log.append(message)
+            # Mark action as resolved and remove from pending actions
+            action['resolved'] = True
+            self.pending_actions.remove(action)
+            # Keep only the last two actions
+            self.action_log = self.action_log[-2:]
+
+    def check_shoot_action(self, action, prev_ball_in_air, prev_ball_holder, prev_score):
+        current_ball_holder = self.grid_world.who_holds[self.current_viewed_world][0].item()
+        current_ball_in_air = current_ball_holder==-1
+        current_score = self.score.copy()  # Update this based on how your simulation updates score
+
+        # Now, by default, Shot missed, no one has the ball (ball out of bounds or other)
+        if current_ball_in_air:
+            initiating_player = action['player_id']
+            # Now, by default, Shot missed, no one has the ball (ball out of bounds or other)
+            message = f"[{self.elapsed_time:.1f}s]: Player {initiating_player} shot failed, ball is loose."
+            self.action_log.append(message)
+            # Mark action as resolved and remove from pending actions
+            action['resolved'] = False
+            self.shot_missed_sound.play()
+            self.pending_actions.remove(action)
+            # Keep only the last two actions
+            self.action_log = self.action_log[-2:]
+
+
+        # For later, when the ball can get in. Check if the shot has been resolved
+        # if not current_ball_in_air:
+        #     initiating_player = action['player_id']
+        #     if current_ball_holder == -1 and current_score != prev_score:
+        #         # Shot succeeded
+        #         message = f"[{self.elapsed_time:.1f}s]: Player {initiating_player} shot succeeded."
+        #         self.shot_succeed_sound.play()
+        #         # Update score
+        #         team = self.get_team(initiating_player)
+        #         if team == 'A':
+        #             self.score[0] += 2
+        #         else:
+        #             self.score[1] += 2
+        #     elif current_ball_holder != -1:
+        #         self.shot_missed_sound.play()
+        #         # Shot missed, someone got the rebound
+        #         if self.is_teammate(current_ball_holder, initiating_player):
+        #             # Teammate got the rebound
+        #             message = f"[{self.elapsed_time:.1f}s]: Player {initiating_player} shot failed, teammate Player {current_ball_holder} got the rebound."
+        #         else:
+        #             # Opponent got the rebound
+        #             message = f"[{self.elapsed_time:.1f}s]: Player {initiating_player} shot failed, opponent Player {current_ball_holder} got the rebound."
+        #     else:
+        #         # Shot missed, no one has the ball (ball out of bounds or other)
+        #         self.shot_missed_sound.play()
+        #         message = f"[{self.elapsed_time:.1f}s]: Player {initiating_player} shot failed, ball is loose."
+            
+        #     self.action_log.append(message)
+        #     # Mark action as resolved and remove from pending actions
+        #     action['resolved'] = True
+        #     self.pending_actions.remove(action)
+        #     # Keep only the last two actions
+        #     self.action_log = self.action_log[-2:]
+
+
+
+
     def run(self):
         # Initialize agent states
         agents_state = self.initialize_policy()
@@ -617,13 +735,33 @@ class Simulation(SimulationPolicies):
                         # Toggle show_details
                         self.show_details = not self.show_details
                     
+                    # Shooting
                     elif event.key == pygame.K_s:
                         # Toggle show_details
-                        self.grid_world.choices[self.current_viewed_world][self.grid_world.who_holds[self.current_viewed_world][0]][0] = 1
+                        player_id = self.grid_world.who_holds[self.current_viewed_world][0].item()
+                        self.grid_world.choices[self.current_viewed_world][player_id][0] = 1
+                        # self.pending_action = ('shoot', player_id)
+                        # Record the pending shot action
+                        self.pending_actions.append({
+                            'type': 'shoot',
+                            'player_id': player_id,
+                            'start_time': self.elapsed_time,
+                            'resolved': False
+                        })
 
+                    # Passing
                     elif event.key == pygame.K_a:
+                        player_id = self.grid_world.who_holds[self.current_viewed_world][0].item()
                         passing = True #quick fix, please remove later
-                        self.grid_world.choices[self.current_viewed_world][self.grid_world.who_holds[self.current_viewed_world][0]][0] = 2
+                        self.grid_world.choices[self.current_viewed_world][player_id][0] = 2
+                        # self.pending_action = ('pass', player_id)
+                        # Record the pending pass action
+                        self.pending_actions.append({
+                            'type': 'pass',
+                            'player_id': player_id,
+                            'start_time': self.elapsed_time,
+                            'resolved': False
+                        })
                     
                     elif event.key == pygame.K_p:
                         self.is_paused = not self.is_paused
@@ -666,17 +804,41 @@ class Simulation(SimulationPolicies):
             #     continue
 
             if not self.is_paused:
+                # Store previous states
+                # prev_ball_in_air = self.grid_world.ball_state[self.current_viewed_world].item()
+                prev_ball_holder = self.grid_world.who_holds[self.current_viewed_world][0].item()
+                prev_ball_in_air = prev_ball_holder==-1
+                prev_score = self.score.copy()
+
                 agents_state = self.run_policy(agents_state)
                 if passing:
                     self.get_velocity_angle_for_ball_pass(self.current_viewed_world, 
                                                           self.grid_world.who_holds[self.current_viewed_world][0], PASSING_VELOCITY)
                 
                 t = time.time()
+
+                # prev_who_holds = self.grid_world.who_holds.clone()      # Store the previous state of who_holds to compare after the update
+                # prev_holder = self.grid_world.who_holds[self.current_viewed_world][0].item()
+                # prev_ball_in_air = self.grid_world.ball_state[self.current_viewed_world].item()  # Assuming ball_state indicates if ball is in the air
+                # prev_ball_holder = self.grid_world.who_holds[self.current_viewed_world][0].item()
+                # prev_score = self.score.copy()
+
                 self.grid_world.step()
-                for i in range(self.num_players):
-                    self.grid_world.choices[self.current_viewed_world][i][0] = 0
+
                 self.elapsed_time += 0.1
                 idx += 1
+
+                # Iterate over a copy of the list to safely remove items while iterating
+                for action in self.pending_actions[:]:
+                    if not action['resolved']:
+                        if action['type'] == 'pass':
+                            self.check_pass_action(action, prev_ball_in_air, prev_ball_holder)
+                        elif action['type'] == 'shoot':
+                            self.check_shoot_action(action, prev_ball_in_air, prev_ball_holder, prev_score)
+
+                for i in range(self.num_players):
+                    self.grid_world.choices[self.current_viewed_world][i][0] = 0
+                
             else:
                 # When paused, ensure actions are zeroed out
                 continue
@@ -731,6 +893,8 @@ class Simulation(SimulationPolicies):
                 # Display time and score
                 self.display_time(self.screen)
                 self.display_score(self.screen)
+                # Display action log
+                self.display_action_log(self.screen)
 
                 pygame.display.flip()
                 if (time.time() - t < 0.1):

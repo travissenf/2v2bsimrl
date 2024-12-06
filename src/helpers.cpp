@@ -193,4 +193,14 @@ bool ballIsHeld(BallStatus &ball_held) {
     return ball_held.heldBy != -1;
 }
 
+// Ask roy for what a reasonable simple formula would be for the probability
+// of a shot given distance, contension, and shot making percentages
+float probabilityOfShot(float distance_from_basket,
+                        float contension,
+                        float shot_make_percentage) 
+{
+    float net_distance = distance_from_basket - 18;
+    float net_contension = contension - 50;
+    float new_percentage = shot_make_percentage + net_distance + net_contension;
+    return std::min(99, std::max(1, new_percentage));
 } 
