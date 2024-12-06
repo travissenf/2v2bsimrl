@@ -14,6 +14,7 @@ enum class ExportID : uint32_t {
     WhoHolds,
     PassingData,
     Scorecard,
+    StaticPlayerAttributes,
     Choice,
 };
 
@@ -51,6 +52,12 @@ struct CourtPos {
     float om;
     float facing;
 };
+
+struct StaticPlayerAttributes {
+    float shootingPercentage3Points;
+    float shootingPercentageFieldGoal;
+    float runningSpeedMph;
+}
 
 struct PassingData {
     float i1;
@@ -97,11 +104,11 @@ struct AgentList {
 
 struct Agent : public madrona::Archetype<
     Action,
-    // CurStep,  // make singleton
     CourtPos,
     PlayerID,
     PlayerStatus,
-    PlayerDecision
+    PlayerDecision,
+    StaticPlayerAttributes
 > {};
 
 struct BallArchetype : public madrona::Archetype<
