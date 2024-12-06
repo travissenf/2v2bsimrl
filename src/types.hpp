@@ -65,7 +65,7 @@ struct StaticPlayerAttributes {
     float shootingPercentage3Points;
     float shootingPercentageFieldGoal;
     float runningSpeedMph;
-}
+};
 
 struct PassingData {
     float i1;
@@ -116,7 +116,7 @@ struct Agent : public madrona::Archetype<
     PlayerID,
     PlayerStatus,
     PlayerDecision,
-    FoulID
+    FoulID,
     StaticPlayerAttributes
 > {};
 

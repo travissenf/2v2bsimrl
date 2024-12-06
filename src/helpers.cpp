@@ -1,5 +1,7 @@
 #include "helpers.hpp"
 #include <cstdlib> 
+#include <cmath>
+#include <algorithm>
 
 namespace madsimple {
 
@@ -30,6 +32,10 @@ CourtPos updateCourtPosition(const CourtPos &current_pos, const Action &action) 
     new_player_pos.om = action.omdes;
     // replace court_pos with our new positions
     return new_player_pos;
+}
+
+float euclideanDistance(float x_1, float y_1, float x_2, float y_2) {
+    return std::sqrt((x_2 - x_1) * (x_2 - x_1) + (y_2 - y_1) * (y_2 - y_1));
 }
 
 CourtPos updateCourtPositionStepped(const CourtPos &current_pos, const Action &action) {
@@ -74,13 +80,27 @@ CourtPos cancelPrevMovementStep(const CourtPos &current_pos, const Action &actio
 
 void updateShotBallState(BallState &current_ball, const BallStatus &ball_status){
     std::mt19937 gen;
-    std::uniform_real_distribution<> dis(15.0, 20.0);
+    std::uniform_real_distribution<> dis(25.0, 45.0);
     current_ball.v = (float)dis(gen);
 
-    if (ball_status.heldBy > 4){ // inline helper functions
-        current_ball.th = atan2(RIGHT_HOOP_Y - current_ball.y, RIGHT_HOOP_X - current_ball.x); // any number, make a const in constants.hpp
+    const float HOOP_X = (ball_status.heldBy > 4) ? RIGHT_HOOP_X : LEFT_HOOP_X;
+    const float HOOP_Y = (ball_status.heldBy > 4) ? RIGHT_HOOP_Y : LEFT_HOOP_Y;
+
+    float prob = probabilityOfShot(euclideanDistance(current_ball.x, current_ball.y, HOOP_X, HOOP_Y)); 
+
+    // Generate a random chance for the decision
+    std::uniform_real_distribution<> chance_dis(0.0, 100.0);
+    float random_chance = static_cast<float>(chance_dis(gen));
+
+    // Calculate the base theta angle
+    float base_th = atan2(HOOP_Y - current_ball.y, HOOP_X - current_ball.x);
+
+    // Decide if the correct or perturbed angle should be assigned
+    if (random_chance <= prob) {
+        current_ball.th = base_th;
     } else {
-        current_ball.th = atan2(LEFT_HOOP_Y - current_ball.y, LEFT_HOOP_X - current_ball.x);
+        std::uniform_real_distribution<> perturb_dis(-0.08, 0.08);
+        current_ball.th = base_th + static_cast<float>(perturb_dis(gen));
     }
     
     current_ball.x += current_ball.v * cos(current_ball.th) * D_T;
@@ -193,14 +213,57 @@ bool ballIsHeld(BallStatus &ball_held) {
     return ball_held.heldBy != -1;
 }
 
-// Ask roy for what a reasonable simple formula would be for the probability
-// of a shot given distance, contension, and shot making percentages
-float probabilityOfShot(float distance_from_basket,
-                        float contension,
-                        float shot_make_percentage) 
+// just doing with distance for right now
+float probabilityOfShot(float distance_from_basket) 
 {
-    float net_distance = distance_from_basket - 18;
-    float net_contension = contension - 50;
-    float new_percentage = shot_make_percentage + net_distance + net_contension;
-    return std::min(99, std::max(1, new_percentage));
-} 
+    const float max_probability = 100.0f; // 100% chance at 0 distance
+    const float min_probability = 1.0f;   // 1% chance at very large distances
+    const float decay_factor = -0.07f;     // Controls how fast probability decays
+
+    float probability = max_probability * std::exp(decay_factor * distance_from_basket);
+    return std::min(max_probability, std::max(min_probability, probability));
+}
+
+void makePlayerInboundBall(BallState &ball_state,
+                           BallStatus &ball_status,
+                           CourtPos &inbounding_player_position,
+                           PlayerDecision &inbounding_player_decision,
+                           PlayerStatus &inbounding_player_status,
+                           PlayerID &id, 
+                           CourtPos &other_player_position,
+                           bool inboundLeft) {
+    // // step 1: place player outside the court
+    // if (inboundLeft) {
+    //     inbounding_player_position[0] = LEFT_INBOUND_X;
+    //     inbounding_player_position[1] = LEFT_INBOUND_Y;
+    // } else {
+    //     inbounding_player_position[0] = RIGHT_INBOUND_X;
+    //     inbounding_player_position[1] = RIGHT_INBOUND_Y;
+    // }
+    // inbounding_player_position[2] = 0.0;
+    // inbounding_player_position[3] = 0.0;
+
+    // // step 2: give player ball
+    // inbounding_player_status.hasBall = true;
+
+    // // step 3: put other player close to player outside of the court
+    // if (inboundLeft) {
+    //     other_player_position[0] = LEFT_INBOUND_X + 10;
+    //     other_player_position[1] = LEFT_INBOUND_Y;
+    // } else {
+    //     other_player_position[0] = RIGHT_INBOUND_X - 10;
+    //     other_player_position[1] = RIGHT_INBOUND_Y
+    // }
+    // other_player_position[2] = 0.0;
+    // other_player_position[3] = 0.0; 
+
+    // // step 4: make player with ball, pass ball 
+    // inbounding_player_decision = PlayerDecision::PASS;
+
+    // // step5: update ball status and location
+    // ball_state[0] = inbounding_player_position[0];
+    // ball_state[1] = inbounding_player_position[1];
+    // ball_status.heldBy = id;
+    return;
+}
+}
