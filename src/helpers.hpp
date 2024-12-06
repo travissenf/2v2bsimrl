@@ -34,11 +34,27 @@ bool shouldPlayerCatch(BallState *state, CourtPos &court_pos);
 
 bool ballIsHeld(BallStatus &ball_held);
 
-void changeBallToInPass(Engine &ctx, float th, float v, PlayerStatus &player_status, PlayerID &id);
+void changeBallToInPass(Engine &ctx, 
+                        float th, 
+                        float v, 
+                        PlayerStatus &player_status, 
+                        PlayerID &id);
+
 bool catchBallIfClose(Engine &ctx,
                       CourtPos &court_pos,
                       PlayerID &id, 
                       PlayerStatus &status);
+
+float probabilityOfShot(float distance_from_basket);
+
+void makePlayerInboundBall(BallState &ball_state,
+                           BallStatus &ball_status,
+                           CourtPos &inbounding_player_position,
+                           PlayerDecision &inbounding_player_decision,
+                           PlayerStatus &inbounding_player_status,
+                           PlayerID &id, 
+                           CourtPos &other_player_position,
+                           bool inboundLeft);
 } // namespace madsimple
 
 #endif // HELPERS_HPP
