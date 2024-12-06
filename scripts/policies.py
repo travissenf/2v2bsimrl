@@ -20,7 +20,7 @@ PLAYERS_PER_TEAM = 5
 
 LEFT_HOOP_X = -41.75
 RIGHT_HOOP_X = 41.75
-PASSING_VELOCITY = 52.0
+PASSING_VELOCITY = 30.0
 
 class SimulationPolicies:
     def __init__(debug_mode_on=False):
