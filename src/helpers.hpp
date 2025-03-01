@@ -17,7 +17,11 @@ CourtPos cancelPrevMovementStep(const CourtPos &current_pos, const Action &actio
 BallState updateBallState(const BallState &current_ball, const BallStatesPossibilities &ball_held, 
                           const madrona::Entity *players, const Engine &ctx, float dt);
 
-void updateShotBallState(BallState &current_ball, const BallStatus &ball_status);
+bool ballIsOOB(BallState &ball_state);
+int findClosestInbound(BallState &ball_state);
+
+bool isThreePointer(float x, float y, float hoopx);
+int8_t updateShotBallState(BallState &current_ball, const BallStatus &ball_status);
 
 float calculateDistance(float x1, float y1, float x2, float y2);
 

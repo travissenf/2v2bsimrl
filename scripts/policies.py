@@ -23,7 +23,7 @@ RIGHT_HOOP_X = 41.75
 PASSING_VELOCITY = 30.0
 
 class SimulationPolicies:
-    def __init__(debug_mode_on=False):
+    def __init__(self, debug_mode_on=False):
         self.debug_mode_on = debug_mode_on
 
     def setDebugMode(self, new_debug_mode):
@@ -55,7 +55,9 @@ class SimulationPolicies:
         # Stop early if reaches goal already
         if 2*v/8 < np.hypot(abs(dx),abs(dy)) < 3*v/8 :
             self.print("Yes, reached!")
-            self.grid_world.actions[world_index, agent_index] = torch.tensor([0, 0, 0])
+            self.grid_world.actions[world_index, agent_index, 0] = 0.0
+            self.grid_world.actions[world_index, agent_index, 1] = 0.0
+            self.grid_world.actions[world_index, agent_index, 2] = 0.0
             return True
 
         # Normalize desired_direction to be between -pi and pi
@@ -68,7 +70,9 @@ class SimulationPolicies:
         # Set angular velocity proportional to angle difference
         angular_velocity = angle_diff * 2.0  # Scaling factor
 
-        self.grid_world.actions[world_index, agent_index] = torch.tensor([desired_velocity, desired_direction, angular_velocity])
+        self.grid_world.actions[world_index, agent_index, 0] = desired_velocity
+        self.grid_world.actions[world_index, agent_index, 1] = desired_direction
+        self.grid_world.actions[world_index, agent_index, 2] = angular_velocity
 
         return False
 
@@ -102,12 +106,12 @@ class SimulationPolicies:
 
                 if state == 'waiting':
                     # The agent is in line, remain stationary
-                    self.grid_world.actions[0, agent_index] = torch.tensor([0.0, 0.0, 0.0])
+                    self.grid_world.actions[j, agent_index] = torch.tensor([0.0, 0.0, 0.0, 0.0, 0,0])
 
                 elif state == 'at_free_throw_line':
                     # The agent is at the free throw line, wait for 1 second
                     agents_state[agent_index]['timer'] += self.dt
-                    self.grid_world.actions[0, agent_index] = torch.tensor([0.0, 0.0, 0.0])
+                    self.grid_world.actions[j, agent_index] = torch.tensor([0.0, 0.0, 0.0, 0.0, 0.0])
 
                     if agents_state[agent_index]['timer'] >= 1.0:
                         # After 1 second, change state to 'going_up'
@@ -150,7 +154,8 @@ class SimulationPolicies:
 
         desired_direction = (np.arctan2(dy, dx) + np.pi) % (2 * np.pi) + np.pi
 
-        self.grid_world.passing_data[world_index] = torch.tensor([pass_velocity, desired_direction])
+        self.grid_world.actions[world_index][agent_index][3] = desired_direction
+        self.grid_world.actions[world_index][agent_index][4] = pass_velocity
 
     def different_goto_position(self, world_index, agent_index, goal_position, desired_velocity):
         # Get the agent's current position and facing angle
@@ -168,7 +173,9 @@ class SimulationPolicies:
 
         # Stop early if reaches goal already
         if (np.hypot(abs(dx),abs(dy)) < 0.25):
-            self.grid_world.actions[world_index, agent_index] = torch.tensor([0, 0, 0])
+            self.grid_world.actions[world_index, agent_index, 0] = 0.0
+            self.grid_world.actions[world_index, agent_index, 1] = 0.0
+            self.grid_world.actions[world_index, agent_index, 2] = 0.0
             return True
 
         # Normalize desired_direction to be between -pi and pi
@@ -180,26 +187,27 @@ class SimulationPolicies:
         desired_velocity = min(desired_velocity, 10.0 * np.hypot(abs(dx),abs(dy)))
         # Set angular velocity proportional to angle difference
         angular_velocity = angle_diff * 2.0  # Scaling factor
-        self.grid_world.actions[world_index, agent_index] = torch.tensor([desired_velocity, desired_direction, angular_velocity])
+        self.grid_world.actions[world_index, agent_index, 0] = desired_velocity
+        self.grid_world.actions[world_index, agent_index, 1] = desired_direction
+        self.grid_world.actions[world_index, agent_index, 2] = angular_velocity
 
         return False
         
     def get_velocity_angle_for_ball_pass(self, world_index, agent_index, desired_velocity):
         if agent_index == -1:
             return
-        if agent_index < 5:
+        if agent_index < PLAYERS_PER_TEAM:
             # Return a random number between 0 and 4 that is not agent_index
-            possible_indices = [i for i in range(5) if i != agent_index]
+            possible_indices = [i for i in range(PLAYERS_PER_TEAM) if i != agent_index]
         else:
-            # Return a random number between 5 and 9 that is not agent_index
-            possible_indices = [i for i in range(5, 10) if i != agent_index]
+            # Return a random number between PLAYERS_PER_TEAM and 9 that is not agent_index
+            possible_indices = [i for i in range(PLAYERS_PER_TEAM, PLAYERS_PER_TEAM * 2) if i != agent_index]
     
         target_agent_index = random.choice(possible_indices)
         self.print("possible_indices:", possible_indices, "\t agent_index:", agent_index, "\t target_agent_index:", target_agent_index)
 
         x, y = self.grid_world.player_pos[0][target_agent_index][0], self.grid_world.player_pos[0][target_agent_index][1]
         self.make_pass(world_index, agent_index, (x, y), desired_velocity)
-        self.print(self.grid_world.passing_data[world_index])
 
     def run_around_and_defend_initialize(self):
         # Initialize agent states
@@ -250,20 +258,20 @@ class SimulationPolicies:
                                                  20.0)
                 elif state == 'running':
                     ypos = (int(self.elapsed_time) // 6) % 2
-                    xpos = (agent_index // 5)
-                    if (agent_index % 5 == 0):
+                    xpos = (agent_index // PLAYERS_PER_TEAM)
+                    if (agent_index % PLAYERS_PER_TEAM == 0):
                         gpos = (-10.0 + xpos * 20.0, -20.0 + ypos * 35.0)
-                    elif (agent_index % 5 == 1):
+                    elif (agent_index % PLAYERS_PER_TEAM == 1):
                         gpos = (-41.0 + xpos * 82.0, -21.0 + ypos * 14.0)
-                    elif (agent_index % 5 == 2):
+                    elif (agent_index % PLAYERS_PER_TEAM == 2):
                         gpos = (-30.0 + xpos * 60.0, 8.0 + ypos * 13.0)
-                    elif (agent_index % 5 == 3):
+                    elif (agent_index % PLAYERS_PER_TEAM == 3):
                         gpos = (-28.0 + xpos * 56.0, -16.0 + ypos * 18.0)
-                    elif (agent_index % 5 == 4):
+                    elif (agent_index % PLAYERS_PER_TEAM == 4):
                         gpos = (-40.0 + xpos * 80.0, ypos * 18.0)
                     self.different_goto_position(self.current_viewed_world, agent_index, gpos, 20.0)
                 elif (state == 'defending'):
-                    self.defend_player(agent_index, (agent_index + 5) % 10)
+                    self.defend_player(agent_index, (agent_index + PLAYERS_PER_TEAM) % (PLAYERS_PER_TEAM * 2) )
                 elif (state == 'passing'):
                     self.get_velocity_angle_for_ball_pass(self.current_viewed_world, agent_index, PASSING_VELOCITY)
                     self.print("PASSING: \n\n ", self.grid_world.actions[self.current_viewed_world, agent_index])

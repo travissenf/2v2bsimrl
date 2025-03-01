@@ -22,7 +22,7 @@ P_LOC_VAL_TO_INDEX = {"x": 0, "y": 1, "theta": 2, "velocity": 3, "angular v": 4,
 B_LOC_INDEX_TO_VAL = {0: "x", 1: "y", 2: "theta", 3: "velocity"}
 
 SUPPORTED_POLICIES = {'run_in_line', 'run_and_defend', 'do_nothing'}
-PASSING_VELOCITY = 52.0
+PASSING_VELOCITY = 35.0
 
 class Simulation(SimulationPolicies):
     def __init__(self):
@@ -51,7 +51,7 @@ class Simulation(SimulationPolicies):
             self.run_policy = self.do_nothing
         # Constants
         self.PLAYER_CIRCLE_SIZE = 12
-        self.SCREEN_WIDTH, self.SCREEN_HEIGHT = 940, 560
+        self.SCREEN_WIDTH, self.SCREEN_HEIGHT = 940, 500
         self.FEET_TO_PIXELS = 10.0  # 10 pixels per foot
         self.dt = 0.1
         self.num_players = 10
@@ -126,7 +126,7 @@ class Simulation(SimulationPolicies):
         self.grid_world = GridWorld(self.points, self.num_worlds, self.enable_gpu_sim, 0)
 
     def get_team(self, player_id):
-        return 'A' if player_id < 5 else 'B'
+        return 'A' if player_id < self.num_players / 2 else 'B'
 
     def is_teammate(self, player_id1, player_id2):
         return self.get_team(player_id1) == self.get_team(player_id2)
@@ -151,9 +151,9 @@ class Simulation(SimulationPolicies):
                 facing = float(world_data[player_id][5])
                 
                 # Assign color based on player ID
-                if 0 <= agent_id <= 4:
+                if 0 <= agent_id < self.num_players:
                     color = "#002B5C"  # Blue
-                elif 5 <= agent_id <= 9:
+                elif self.num_players <= agent_id < self.num_players * 2:
                     color = (255, 170, 51)  # Yellow
                 else:
                     color = "#ff8c00"  # Basketball
@@ -382,7 +382,7 @@ class Simulation(SimulationPolicies):
                 z = agent.get('z', 0)  # Assuming z is available in agent data, default to 0 if not
 
                 # Choose pacman image based on agent ID
-                if 0 <= agent['id'] <= 5:
+                if 0 <= agent['id'] <= self.num_players / 2:
                     pacman_img = self.pacman_yellow_v
                 else:
                     pacman_img = self.pacman_blue_v
@@ -543,7 +543,7 @@ class Simulation(SimulationPolicies):
         # Load players' data
         num_players = len(game_state["players"])
         player_pos_shape = self.grid_world.player_pos[self.current_viewed_world].shape
-        for i in range(num_players):
+        for i in range(self.num_players):
             for j in range(player_pos_shape[1]):
                 key = P_LOC_INDEX_TO_VAL[j]
                 self.grid_world.player_pos[self.current_viewed_world][i][j] = game_state["players"][i][key]
@@ -823,10 +823,20 @@ class Simulation(SimulationPolicies):
                 # prev_ball_holder = self.grid_world.who_holds[self.current_viewed_world][0].item()
                 # prev_score = self.score.copy()
 
+                score1 = self.grid_world.scoreboard[0][0]
+                score2 = self.grid_world.scoreboard[0][1]
+                print('g')
                 self.grid_world.step()
-
+                print('f')
                 self.elapsed_time += 0.1
                 idx += 1
+                print(self.grid_world.scoreboard)
+                if (self.grid_world.scoreboard[0][0] != score1):
+                    print("Team 1 scores %d points" % (score1 - self.grid_world.scoreboard[0][0]))
+                elif (self.grid_world.scoreboard[0][1] != score2):
+                    print("Team 2 scores %d points" % (score2 - self.grid_world.scoreboard[0][1]))
+                
+
 
                 # Iterate over a copy of the list to safely remove items while iterating
                 for action in self.pending_actions[:]:
@@ -904,7 +914,7 @@ class Simulation(SimulationPolicies):
         if self.args.savevideo:
             frame_data = pygame.surfarray.array3d(self.screen)
             frame_data = frame_data.transpose((1, 0, 2))
-            standard_size = (940, 688)
+            standard_size = (940, 500)
             frame_data_resized = cv2.resize(frame_data, standard_size, interpolation=cv2.INTER_LINEAR)
             self.frames.append(frame_data_resized)
 

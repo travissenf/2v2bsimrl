@@ -1,6 +1,7 @@
 #pragma once
 
 #include <madrona/components.hpp>
+#include "consts.hpp"
 
 namespace madsimple {
 
@@ -33,21 +34,18 @@ enum class FoulID : int8_t {
     PUSH = 3,
 };
 
-enum BallStatesPossibilities {
-    BALL_IN_LOOSE,
-    BALL_IN_PASS,
-    BALL_IN_SHOT
-};
-
 struct PlayerStatus {
     bool hasBall;
     bool justShot; // TODO: do we need?
+    int8_t pointsOnMake;
 };
 
 struct Action {
     float vdes;
     float thdes;
     float omdes;
+    float pass_th;
+    float pass_v;
 };
 
 // new court position component
@@ -67,22 +65,17 @@ struct StaticPlayerAttributes {
     float runningSpeedMph;
 };
 
-struct PassingData {
-    float i1;
-    float i2;
-};
-
 struct Scorecard {
-    int scoreA;
-    int scoreB;
-    int quarter;
-    float minutesDoneThisQ;
-    float secondsDoneThisQ;
+    int16_t score1;
+    int16_t score2;
+    int16_t quarter;
+    int16_t ticksElapsed;
 };
 
 struct BallReference {
    Entity theBall;
 };
+
 
 struct GameReference {
     Entity theGame;
@@ -90,6 +83,15 @@ struct GameReference {
 
 struct PlayerID {
     int8_t id;
+};
+
+enum BallStatesPossibilities {
+    BALL_IN_LOOSE = 0,
+    BALL_IN_PASS = 1,
+    BALL_IN_SHOT = 2,
+    T1_NEED_TO_INBOUND = 3,
+    T2_NEED_TO_INBOUND = 4, 
+    BALL_IS_HELD = 5
 };
 
 struct BallState {
@@ -107,7 +109,7 @@ struct BallStatus {
 };
 
 struct AgentList {
-    madrona::Entity e[10];
+    madrona::Entity e[ACTIVE_PLAYERS];
 };
 
 struct Agent : public madrona::Archetype<
@@ -126,7 +128,6 @@ struct BallArchetype : public madrona::Archetype<
 > {};
 
 struct GameState : public madrona::Archetype<
-    PassingData,
     Scorecard
 > {};
 }

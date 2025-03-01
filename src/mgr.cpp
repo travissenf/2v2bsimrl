@@ -246,7 +246,7 @@ Tensor Manager::playerTensor() const
 Tensor Manager::actionTensor() const
 {
     return impl_->exportTensor(ExportID::Action, TensorElementType::Float32,
-        {impl_->cfg.numWorlds, impl_->cfg.numPlayers, 3});
+        {impl_->cfg.numWorlds, impl_->cfg.numPlayers, 5});
 }
 
 Tensor Manager::ballTensor() const
@@ -258,19 +258,13 @@ Tensor Manager::ballTensor() const
 Tensor Manager::heldTensor() const
 {
     return impl_->exportTensor(ExportID::WhoHolds, TensorElementType::Int8,
-        {impl_->cfg.numWorlds, 2});
-}
-
-Tensor Manager::passingDataTensor() const
-{
-    return impl_->exportTensor(ExportID::PassingData, TensorElementType::Float32,
-        {impl_->cfg.numWorlds, 2});
+        {impl_->cfg.numWorlds, 3});
 }
 
 Tensor Manager::gameStateTensor() const
 {
-    return impl_->exportTensor(ExportID::Scorecard, TensorElementType::Float32,
-        {impl_->cfg.numWorlds, 5});
+    return impl_->exportTensor(ExportID::Scorecard, TensorElementType::Int16,
+        {impl_->cfg.numWorlds, 4});
 }
 
 Tensor Manager::playerAttributesTensor() const

@@ -102,6 +102,7 @@
         "xtree": "cpp",
         "xutility": "cpp",
         "cuda_std_post": "cpp",
-        "coroutine": "cpp"
+        "coroutine": "cpp",
+        "barrier": "cpp"
     }
 }

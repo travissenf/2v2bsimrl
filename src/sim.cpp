@@ -25,7 +25,6 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &)
     registry.registerComponent<AgentList>();
     registry.registerComponent<PlayerStatus>();
     registry.registerComponent<PlayerDecision>();
-    registry.registerComponent<PassingData>();
     registry.registerComponent<FoulID>();
     registry.registerComponent<Scorecard>();
 
@@ -46,7 +45,7 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &)
     registry.exportColumn<Agent, FoulID>((uint32_t)ExportID::CalledFoul);
     registry.exportColumn<Agent, StaticPlayerAttributes>((uint32_t)ExportID::StaticPlayerAttributes);
 
-    registry.exportColumn<GameState, PassingData>((uint32_t)ExportID::PassingData);
+    registry.exportColumn<GameState, Scorecard>((uint32_t)ExportID::Scorecard);
 
     registry.exportColumn<BallArchetype, BallState>((uint32_t)ExportID::BallLoc);
     registry.exportColumn<BallArchetype, BallStatus>((uint32_t)ExportID::WhoHolds);
@@ -56,6 +55,7 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &)
 }
 
 inline void takePlayerAction(Engine &ctx,
+                Action &action,
                  CourtPos &court_pos,
                  PlayerID &id, 
                  PlayerStatus &status, 
@@ -64,6 +64,7 @@ inline void takePlayerAction(Engine &ctx,
                 //  
                 
 {
+
     foul = FoulID::NO_CALL; // reset foul state
     if (canBallBeCaught(ctx, id)) {
         if (catchBallIfClose(ctx, court_pos, id, status)) {
@@ -86,8 +87,7 @@ inline void takePlayerAction(Engine &ctx,
                 status.hasBall = false;
                 status.justShot = false;
 
-                PassingData* passing_data = &ctx.get<PassingData>(ctx.singleton<GameReference>().theGame);
-                changeBallToInPass(ctx, passing_data->i2, passing_data->i1, status, id);
+                changeBallToInPass(ctx, action.pass_th, action.pass_v, status, id);
             }
             break;
         }
@@ -138,15 +138,18 @@ inline void checkForBlockCharge(Engine &ctx,
                 court_pos = cancelPrevMovementStep(court_pos, action); // revert the move
             } else {
                 int whoHasBall = ctx.get<BallStatus>(ctx.singleton<BallReference>().theBall).heldBy;
+                if (whoHasBall == -1){
+                    whoHasBall = ctx.get<BallStatus>(ctx.singleton<BallReference>().theBall).whoPassed;
+                }
+                if (whoHasBall == -1){
+                    whoHasBall = ctx.get<BallStatus>(ctx.singleton<BallReference>().theBall).whoShot;
+                }
 
                 float v1_x = -1 * court_pos.v * cos(court_pos.th);
                 float v1_y = -1 * court_pos.v * sin(court_pos.th);
                 float v2_x = ctx.get<CourtPos>(p).v * cos(ctx.get<CourtPos>(p).th);
                 float v2_y = ctx.get<CourtPos>(p).v * sin(ctx.get<CourtPos>(p).th);
-                
-                
-                float result_x = v1_x + v2_x;
-                float result_y = v1_y + v2_y;
+            
                 
                 float impact_factor = sqrt(pow(v1_x + v2_x, 2) + pow(v1_y + v2_y, 2));
 
@@ -187,13 +190,14 @@ inline void balltick(Engine &ctx,
 {
     float dt = ctx.data().dt;
     auto players = ctx.singleton<AgentList>().e;
-    std::mt19937 gen; // single funciton call getRandomNumber between 0 and 1 
+    std::random_device rd;
+    std::mt19937 gen(rd()); // single funciton call getRandomNumber between 0 and 1 
     std::uniform_real_distribution<> dis(15.0, 20.0);
 
     if (ballIsHeld(ball_held)){
         Entity p = players[ball_held.heldBy];
         if (ctx.get<PlayerStatus>(p).justShot){
-            updateShotBallState(ball_state, ball_held);
+            ctx.get<PlayerStatus>(p).pointsOnMake = updateShotBallState(ball_state, ball_held);
             ball_held.whoShot = ball_held.heldBy;
             ball_held.heldBy = -1;
         } else {
@@ -213,23 +217,43 @@ inline void balltick(Engine &ctx,
         ball_state.x += ball_state.v * cos(ball_state.th) * dt;
         ball_state.y += ball_state.v * sin(ball_state.th) * dt;
         if (ball_held.whoShot > -1){
+            bool team1 = true;
             if (ball_held.whoShot > 4){
                 hoopx = RIGHT_HOOP_X;
+                team1 = false;
             }
             if (sqrt((hoopx - ball_state.x) * (hoopx - ball_state.x) + (LEFT_HOOP_Y - ball_state.y) * (LEFT_HOOP_Y - ball_state.y))
             <= sqrt((ball_state.x - old_ball_state_x) * (ball_state.x - old_ball_state_x) 
             + (ball_state.y - old_ball_state_y) * (ball_state.y - old_ball_state_y))) {
                 // did shot go in?
-                dis = std::uniform_real_distribution<>(0.0, 10.0);
-                ball_state.v = (float)dis(gen);
                 Entity p = players[ball_held.whoShot];
-                ctx.get<PlayerStatus>(p).justShot = false;
-                ball_held.whoShot = -1;
-                dis = std::uniform_real_distribution<>(atan(1)*-2, atan(1)*2);
-                ball_state.th = (float)dis(gen);
-                if (ball_held.whoShot > 4) {
+                if (ctx.get<PlayerStatus>(p).pointsOnMake != 0){
+                    ball_state.v = 0.0;
+                    ball_state.th = 0.0;
+                    if (team1){
+                        ctx.get<Scorecard>(ctx.singleton<GameReference>().theGame).score1 
+                            += ctx.get<PlayerStatus>(p).pointsOnMake;
+                    } else {
+                        ctx.get<Scorecard>(ctx.singleton<GameReference>().theGame).score2 
+                            += ctx.get<PlayerStatus>(p).pointsOnMake;
+                    }
+                    
+                    ctx.get<PlayerStatus>(p).pointsOnMake = 0;
+                }
+                else{
+                    dis = std::uniform_real_distribution<>(0.0, 10.0);
+                    ball_state.v = (float)dis(gen);
+                    dis = std::uniform_real_distribution<>(atan(1)*-2, atan(1)*2);
+                    ball_state.th = (float)dis(gen);
+                }
+                if (!team1) {
                     ball_state.th += atan(1) * 4;
                 }
+
+                ctx.get<PlayerStatus>(p).justShot = false;
+                ball_held.whoShot = -1;
+                
+                
             }
         } else {
             for (int i = 0; i < ACTIVE_PLAYERS; i++){
@@ -238,6 +262,9 @@ inline void balltick(Engine &ctx,
                 float dist = sqrt((ppos.x - ball_state.x) * (ppos.x - ball_state.x) + (ppos.y - ball_state.y) * (ppos.y - ball_state.y));
                 if ((dist < 2.0) && (ctx.get<PlayerID>(pl).id != ball_held.whoPassed)) {
                     ball_held.heldBy = i;
+                    ball_held.ballState = BallStatesPossibilities::BALL_IS_HELD;
+                    ball_held.whoPassed = -1;
+                    ball_held.whoShot = -1; // rebounding check here?
                     ball_state.x = ppos.x;
                     ball_state.y = ppos.y;
                     ball_state.v = ppos.v;
@@ -247,13 +274,49 @@ inline void balltick(Engine &ctx,
             }
         }
     }
+
+    // if (ballIsOOB(ball_state) && (ball_held.ballState < 3)){
+    //     int closest_inbound_index = findClosestInbound(ball_state);
+    //     ball_state.x = INBOUND_POINTS[closest_inbound_index].x;
+    //     ball_state.y = INBOUND_POINTS[closest_inbound_index].y;
+    //     ball_state.v = 0.0;
+
+
+    //     // determine who needs to inbound the ball
+    //     if (ball_held.heldBy >= 0){
+    //         if (ball_held.heldBy < FIRST_TEAM2_PLAYER){
+    //             ball_held.ballState = BallStatesPossibilities::T2_NEED_TO_INBOUND;
+    //         } else {
+    //             ball_held.ballState = BallStatesPossibilities::T1_NEED_TO_INBOUND;
+    //         }
+    //     } else if (ball_held.whoPassed >= 0){
+    //         if (ball_held.whoPassed < FIRST_TEAM2_PLAYER){
+    //             ball_held.ballState = BallStatesPossibilities::T2_NEED_TO_INBOUND;
+    //         } else {
+    //             ball_held.ballState = BallStatesPossibilities::T1_NEED_TO_INBOUND;
+    //         }
+    //     } else if (ball_held.whoShot >= 0 ){
+    //         if (ball_held.whoShot < FIRST_TEAM2_PLAYER){
+    //             ball_held.ballState = BallStatesPossibilities::T2_NEED_TO_INBOUND;
+    //         } else {
+    //             ball_held.ballState = BallStatesPossibilities::T1_NEED_TO_INBOUND;
+    //         }
+    //     }
+    // } // saving inbound code for later
+
+
+    ctx.get<Scorecard>(ctx.singleton<GameReference>().theGame).ticksElapsed += 1;
 }
 
 inline void postprocess(Engine &ctx,
+                PlayerID &id,
                 PlayerStatus &status)
                 //  
 {
     PlayerStatus st = status;
+    if (ctx.get<BallStatus>(ctx.singleton<BallReference>().theBall).heldBy != id.id) {
+        st.hasBall = false;
+    }
     st.justShot = false;
     status = st;
 }
@@ -264,7 +327,7 @@ void Sim::setupTasks(TaskGraphManager &taskgraph_mgr,
     TaskGraphBuilder &builder = taskgraph_mgr.init(0);
     
     auto actionfunc = builder.addToGraph<ParallelForNode<Engine, takePlayerAction,
-        CourtPos, PlayerID, PlayerStatus, PlayerDecision, FoulID>>({});
+        Action, CourtPos, PlayerID, PlayerStatus, PlayerDecision, FoulID>>({});
 
     auto movementfunc = builder.addToGraph<ParallelForNode<Engine, movePlayerStep,
         Action, CourtPos>>({actionfunc});
@@ -284,7 +347,7 @@ void Sim::setupTasks(TaskGraphManager &taskgraph_mgr,
     auto ballfunc = builder.addToGraph<ParallelForNode<Engine, balltick,
         BallState, BallStatus>>({blockchargecheck});
 
-    builder.addToGraph<ParallelForNode<Engine, postprocess,
+    builder.addToGraph<ParallelForNode<Engine, postprocess, PlayerID,
         PlayerStatus>>({ballfunc});
 }
 
@@ -297,16 +360,20 @@ Sim::Sim(Engine &ctx, const Config &cfg, const WorldInit &init)
 {
     ctx.singleton<BallReference>().theBall = ctx.makeEntity<BallArchetype>();
     ctx.get<BallState>(ctx.singleton<BallReference>().theBall) = BallState {CENTER_X, CENTER_Y, CENTER_Z,};
-    ctx.get<BallStatus>(ctx.singleton<BallReference>().theBall) = BallStatus {PLAYER_STARTING_WITH_BALL, NOT_PREVIOUSLY_SHOT};
-
+    if (PLAYER_STARTING_WITH_BALL != -1) {
+        ctx.get<BallStatus>(ctx.singleton<BallReference>().theBall) = BallStatus {PLAYER_STARTING_WITH_BALL, NOT_PREVIOUSLY_SHOT, -1, BallStatesPossibilities::BALL_IS_HELD};
+    } else {
+        ctx.get<BallStatus>(ctx.singleton<BallReference>().theBall) = BallStatus {PLAYER_STARTING_WITH_BALL, NOT_PREVIOUSLY_SHOT, -1, BallStatesPossibilities::BALL_IN_LOOSE};
+    }
+    
     ctx.singleton<GameReference>().theGame = ctx.makeEntity<GameState>();
-    ctx.get<PassingData>(ctx.singleton<GameReference>().theGame) = PassingData {0.0, 0.0};
-    ctx.get<Scorecard>(ctx.singleton<GameReference>().theGame) = Scorecard {0, 0, 1, 0.0, 0.0};
+    ctx.get<Scorecard>(ctx.singleton<GameReference>().theGame) = Scorecard {0, 0, 1, 0};
+
 
     for (int i = 0; i < court->numPlayers; i++){
         Entity agent = ctx.makeEntity<Agent>();
         ctx.get<Action>(agent) = Action {
-            CENTER_X, CENTER_Y, CENTER_Z,
+            CENTER_X, CENTER_Y, CENTER_Z, 0.0, 0.0
         };
         ctx.get<CourtPos>(agent) = CourtPos {
             court->players[i].x, court->players[i].y, 
@@ -314,7 +381,7 @@ Sim::Sim(Engine &ctx, const Config &cfg, const WorldInit &init)
             court->players[i].om, court->players[i].facing,
         };
         ctx.get<PlayerID>(agent).id = i;
-        ctx.get<PlayerStatus>(agent) = {false, false};
+        ctx.get<PlayerStatus>(agent) = {false, false, 0};
         ctx.get<FoulID>(agent) = FoulID::NO_CALL;
         ctx.get<StaticPlayerAttributes>(agent) = {0.0, 0.0, 0.0};
         ctx.singleton<AgentList>().e[i] = agent;

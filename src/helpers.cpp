@@ -78,8 +78,40 @@ CourtPos cancelPrevMovementStep(const CourtPos &current_pos, const Action &actio
     return new_player_pos;
 }
 
-void updateShotBallState(BallState &current_ball, const BallStatus &ball_status){
-    std::mt19937 gen;
+
+bool ballIsOOB(BallState &ball_state) {
+    if ((ball_state.x > MIN_X) && (ball_state.x < MAX_X) && 
+        (ball_state.y > MIN_Y) && (ball_state.y < MAX_Y)){
+        return false;
+    }
+
+    return true;
+}
+
+int findClosestInbound(BallState &ball_state){
+    int closest = 0; // Start with the first point as the closest
+    float minDistance = std::numeric_limits<float>::max();
+
+    for (int i = 0; i < INBOUND_POINTS.size(); i++) {
+        float distance = euclideanDistance(INBOUND_POINTS[i].x, INBOUND_POINTS[i].y, ball_state.x, ball_state.y);
+        if (distance < minDistance) {
+            minDistance = distance;
+            closest = i;
+        }
+    }
+
+    return closest;
+}
+
+bool isThreePointer(float x, float y, float hoopx){
+    return ((euclideanDistance(x, y, hoopx, LEFT_HOOP_Y) > 23.75) //23'9'' away from hoop
+        || (y > MAX_Y - 3)// top corner three
+        || (y < MIN_Y + 3));// bottom corner three
+}
+
+int8_t updateShotBallState(BallState &current_ball, const BallStatus &ball_status){
+    std::random_device rd;
+    std::mt19937 gen(rd());
     std::uniform_real_distribution<> dis(25.0, 45.0);
     current_ball.v = (float)dis(gen);
 
@@ -92,19 +124,26 @@ void updateShotBallState(BallState &current_ball, const BallStatus &ball_status)
     std::uniform_real_distribution<> chance_dis(0.0, 100.0);
     float random_chance = static_cast<float>(chance_dis(gen));
 
+    
+
     // Calculate the base theta angle
     float base_th = atan2(HOOP_Y - current_ball.y, HOOP_X - current_ball.x);
 
     // Decide if the correct or perturbed angle should be assigned
-    if (random_chance <= prob) {
-        current_ball.th = base_th;
-    } else {
-        std::uniform_real_distribution<> perturb_dis(-0.08, 0.08);
-        current_ball.th = base_th + static_cast<float>(perturb_dis(gen));
-    }
+    current_ball.th = base_th;
     
     current_ball.x += current_ball.v * cos(current_ball.th) * D_T;
     current_ball.y += current_ball.v * sin(current_ball.th) * D_T;
+
+    if (random_chance > prob){
+        return 0;
+    }
+    else if (isThreePointer(current_ball.x, current_ball.y, HOOP_X))
+    {
+        return 3;
+    }
+    
+    return 2;
 }
 
 void changeBallToInPass(Engine &ctx, float th, float v, PlayerStatus &player_status, PlayerID &id) {
@@ -188,18 +227,25 @@ bool catchBallIfClose(Engine &ctx,
                       PlayerID &id, 
                       PlayerStatus &status) {
     BallState* state = &ctx.get<BallState>(ctx.singleton<BallReference>().theBall);
-    float ball_x = state->x;
-    float ball_y = state->y;
+    BallStatus* ball_status = &ctx.get<BallStatus>(ctx.singleton<BallReference>().theBall);
 
-    float player_x = court_pos.x;
-    float player_y = court_pos.y;
+    if (ball_status->ballState == BallStatesPossibilities::T1_NEED_TO_INBOUND){
+        if (id.id / FIRST_TEAM2_PLAYER != 0){
+            return false;
+        }
+    } else if (ball_status->ballState == BallStatesPossibilities::T2_NEED_TO_INBOUND){
+        if (id.id / FIRST_TEAM2_PLAYER != 1){
+            return false;
+        }
+    }
+
 
     if (shouldPlayerCatch(state, court_pos)) 
     {
         status.hasBall = true;
-
-        BallStatus* ball_status = &ctx.get<BallStatus>(ctx.singleton<BallReference>().theBall);
         ball_status->heldBy = id.id;
+        ball_status->whoShot = -1;
+        ball_status->whoPassed = -1;
 
         state->v = 0;
         state->th = 0;
