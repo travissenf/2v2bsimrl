@@ -823,14 +823,11 @@ class Simulation(SimulationPolicies):
                 # prev_ball_holder = self.grid_world.who_holds[self.current_viewed_world][0].item()
                 # prev_score = self.score.copy()
 
-                score1 = self.grid_world.scoreboard[0][0]
-                score2 = self.grid_world.scoreboard[0][1]
-                print('g')
+                score1 = self.grid_world.scoreboard[0][0].item()
+                score2 = self.grid_world.scoreboard[0][1].item()
                 self.grid_world.step()
-                print('f')
                 self.elapsed_time += 0.1
                 idx += 1
-                print(self.grid_world.scoreboard)
                 if (self.grid_world.scoreboard[0][0] != score1):
                     print("Team 1 scores %d points" % (score1 - self.grid_world.scoreboard[0][0]))
                 elif (self.grid_world.scoreboard[0][1] != score2):
