@@ -257,13 +257,13 @@ Tensor Manager::ballTensor() const
 
 Tensor Manager::heldTensor() const
 {
-    return impl_->exportTensor(ExportID::WhoHolds, TensorElementType::Int8,
-        {impl_->cfg.numWorlds, 3});
+    return impl_->exportTensor(ExportID::WhoHolds, TensorElementType::Int32,
+        {impl_->cfg.numWorlds, 4});
 }
 
 Tensor Manager::gameStateTensor() const
 {
-    return impl_->exportTensor(ExportID::Scorecard, TensorElementType::Int16,
+    return impl_->exportTensor(ExportID::Scorecard, TensorElementType::Int32,
         {impl_->cfg.numWorlds, 4});
 }
 
@@ -275,13 +275,24 @@ Tensor Manager::playerAttributesTensor() const
 
 Tensor Manager::choiceTensor() const
 {
-    return impl_->exportTensor(ExportID::Choice, TensorElementType::Int8,
+    return impl_->exportTensor(ExportID::Choice, TensorElementType::Int32,
         {impl_->cfg.numWorlds, impl_->cfg.numPlayers, 1});
 }
 
 Tensor Manager::foulCallTensor() const
 {
-    return impl_->exportTensor(ExportID::CalledFoul, TensorElementType::Int8,
+    return impl_->exportTensor(ExportID::CalledFoul, TensorElementType::Int32,
         {impl_->cfg.numWorlds, impl_->cfg.numPlayers, 1});
 }
+Tensor Manager::resetTensor() const
+{
+    return impl_->exportTensor(ExportID::Reset,
+                               TensorElementType::Int32,
+                               {
+                                   impl_->cfg.numWorlds,
+                                   1,
+                               });
 }
+}
+
+

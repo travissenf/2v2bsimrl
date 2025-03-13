@@ -74,6 +74,7 @@ NB_MODULE(_madrona_simple_example_cpp, m) {
            nb::arg("num_players"), // arg for number of players
            nb::arg("gpu_id") = -1)
         .def("step", &Manager::step)
+        .def("reset_tensor", &Manager::resetTensor)
         .def("player_tensor", &Manager::playerTensor) // added new player tensor for data export
         .def("action_tensor", &Manager::actionTensor)
         .def("ball_tensor", &Manager::ballTensor)

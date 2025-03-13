@@ -42,7 +42,7 @@ constexpr double CENTER_Z = 0.0;
 constexpr double GRAVITY = 32.1741;
 constexpr double MAX_V_CHANGE = 100000.0;
 
-constexpr int ACTIVE_PLAYERS = 10;
+constexpr int ACTIVE_PLAYERS = 4;
 constexpr int COLLISION_CHECK_STEPS = 4;
 
 

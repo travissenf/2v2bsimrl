@@ -17,17 +17,18 @@ enum class ExportID : uint32_t {
     Scorecard,
     StaticPlayerAttributes,
     Choice,
-    CalledFoul
+    CalledFoul, 
+    Reset
 };
 
-enum class PlayerDecision : int8_t {
+enum class PlayerDecision : int32_t {
     MOVE = 0,
     SHOOT = 1,
     PASS = 2,
     NOTHING = 3,
 };
 
-enum class FoulID : int8_t {
+enum class FoulID : int32_t {
     NO_CALL = 0,
     BLOCK = 1,
     CHARGE = 2,
@@ -37,7 +38,7 @@ enum class FoulID : int8_t {
 struct PlayerStatus {
     bool hasBall;
     bool justShot; // TODO: do we need?
-    int8_t pointsOnMake;
+    int32_t pointsOnMake;
 };
 
 struct Action {
@@ -57,6 +58,10 @@ struct CourtPos {
     float v;
     float om;
     float facing;
+};
+
+struct WorldReset {
+    int32_t reset;
 };
 
 struct StaticPlayerAttributes {
@@ -82,7 +87,7 @@ struct GameReference {
 };
 
 struct PlayerID {
-    int8_t id;
+    int32_t id;
 };
 
 enum BallStatesPossibilities {
@@ -102,9 +107,9 @@ struct BallState {
 };
 
 struct BallStatus {
-    int8_t heldBy;
-    int8_t whoShot;
-    int8_t whoPassed;
+    int32_t heldBy;
+    int32_t whoShot;
+    int32_t whoPassed;
     BallStatesPossibilities ballState;
 };
 

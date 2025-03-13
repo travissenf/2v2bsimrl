@@ -42,11 +42,6 @@ CourtPos updateCourtPositionStepped(const CourtPos &current_pos, const Action &a
     CourtPos new_player_pos = current_pos;
     float stepdt = D_T / COLLISION_CHECK_STEPS;
 
-    // Update the player positions, by just adding 1 right now. Here is where we can add random movement
-    new_player_pos.x += new_player_pos.v * cos(new_player_pos.th) * stepdt;
-    new_player_pos.y += new_player_pos.v * sin(new_player_pos.th) * stepdt;
-    new_player_pos.facing += new_player_pos.om * stepdt;
-
     float dx = action.vdes * cos(action.thdes);
     float dy = action.vdes * sin(action.thdes);
 
@@ -61,9 +56,23 @@ CourtPos updateCourtPositionStepped(const CourtPos &current_pos, const Action &a
     if (dist <= MAX_V_CHANGE * stepdt){ // always true for now
         new_player_pos.v = action.vdes;
         new_player_pos.th = action.thdes;
-    } 
+    } else { // Move partially along the direction
+        float scale = (MAX_V_CHANGE * stepdt) / dist;
+        float nx = ax + lx * scale;
+        float ny = ay + ly * scale;
+    
+        new_player_pos.v = sqrt(nx * nx + ny * ny);
+        new_player_pos.th = atan2(ny, nx);
+    }
 
     new_player_pos.om = action.omdes;
+
+    // Update the player positions, by just adding 1 right now. Here is where we can add random movement
+    new_player_pos.x += new_player_pos.v * cos(new_player_pos.th) * stepdt;
+    new_player_pos.y += new_player_pos.v * sin(new_player_pos.th) * stepdt;
+    new_player_pos.facing += new_player_pos.om * stepdt;
+
+    
     // replace court_pos with our new positions
     return new_player_pos;
 }
@@ -109,14 +118,14 @@ bool isThreePointer(float x, float y, float hoopx){
         || (y < MIN_Y + 3));// bottom corner three
 }
 
-int8_t updateShotBallState(BallState &current_ball, const BallStatus &ball_status){
+int32_t updateShotBallState(BallState &current_ball, const BallStatus &ball_status){
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_real_distribution<> dis(25.0, 45.0);
     current_ball.v = (float)dis(gen);
 
-    const float HOOP_X = (ball_status.heldBy > 4) ? RIGHT_HOOP_X : LEFT_HOOP_X;
-    const float HOOP_Y = (ball_status.heldBy > 4) ? RIGHT_HOOP_Y : LEFT_HOOP_Y;
+    const float HOOP_X = (ball_status.heldBy >= FIRST_TEAM2_PLAYER) ? RIGHT_HOOP_X : LEFT_HOOP_X;
+    const float HOOP_Y = (ball_status.heldBy >= FIRST_TEAM2_PLAYER) ? RIGHT_HOOP_Y : LEFT_HOOP_Y;
 
     float prob = probabilityOfShot(euclideanDistance(current_ball.x, current_ball.y, HOOP_X, HOOP_Y)); 
 

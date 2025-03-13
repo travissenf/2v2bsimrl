@@ -35,6 +35,7 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &)
     registry.registerSingleton<BallReference>();
     registry.registerSingleton<AgentList>();
     registry.registerSingleton<GameReference>();
+    registry.registerSingleton<WorldReset>();
 
     // registry.registerArchetype<PlayerAgent>();
 
@@ -50,7 +51,7 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &)
     registry.exportColumn<BallArchetype, BallState>((uint32_t)ExportID::BallLoc);
     registry.exportColumn<BallArchetype, BallStatus>((uint32_t)ExportID::WhoHolds);
 
-
+    registry.exportSingleton<WorldReset>((uint32_t)ExportID::Reset);
 
 }
 
@@ -70,6 +71,12 @@ inline void takePlayerAction(Engine &ctx,
         if (catchBallIfClose(ctx, court_pos, id, status)) {
             return;
         }
+    }
+    status.justShot = false;
+    if (isHoldingBall(id, ctx)){
+        status.hasBall = true;
+    } else {
+        status.hasBall = false;
     }
     switch (decision) {
         case PlayerDecision::SHOOT: {
@@ -218,7 +225,7 @@ inline void balltick(Engine &ctx,
         ball_state.y += ball_state.v * sin(ball_state.th) * dt;
         if (ball_held.whoShot > -1){
             bool team1 = true;
-            if (ball_held.whoShot > 4){
+            if (ball_held.whoShot >= FIRST_TEAM2_PLAYER){
                 hoopx = RIGHT_HOOP_X;
                 team1 = false;
             }
@@ -365,12 +372,11 @@ Sim::Sim(Engine &ctx, const Config &cfg, const WorldInit &init)
     } else {
         ctx.get<BallStatus>(ctx.singleton<BallReference>().theBall) = BallStatus {PLAYER_STARTING_WITH_BALL, NOT_PREVIOUSLY_SHOT, -1, BallStatesPossibilities::BALL_IN_LOOSE};
     }
-    
     ctx.singleton<GameReference>().theGame = ctx.makeEntity<GameState>();
     ctx.get<Scorecard>(ctx.singleton<GameReference>().theGame) = Scorecard {0, 0, 1, 0};
 
 
-    for (int i = 0; i < court->numPlayers; i++){
+    for (int i = 0; i < ACTIVE_PLAYERS; i++){
         Entity agent = ctx.makeEntity<Agent>();
         ctx.get<Action>(agent) = Action {
             CENTER_X, CENTER_Y, CENTER_Z, 0.0, 0.0

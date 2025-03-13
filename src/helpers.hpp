@@ -21,7 +21,7 @@ bool ballIsOOB(BallState &ball_state);
 int findClosestInbound(BallState &ball_state);
 
 bool isThreePointer(float x, float y, float hoopx);
-int8_t updateShotBallState(BallState &current_ball, const BallStatus &ball_status);
+int32_t updateShotBallState(BallState &current_ball, const BallStatus &ball_status);
 
 float calculateDistance(float x1, float y1, float x2, float y2);
 

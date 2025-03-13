@@ -16,7 +16,7 @@ import json
 import random
 
 
-PLAYERS_PER_TEAM = 5
+PLAYERS_PER_TEAM = 2
 
 LEFT_HOOP_X = -41.75
 RIGHT_HOOP_X = 41.75

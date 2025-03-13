@@ -1,0 +1,48 @@
+{
+    "players": [
+        {
+            "id": 0,
+            "x": 18.0,
+            "y": 3.0,
+            "theta": 3.140000104904175,
+            "velocity": 0.0,
+            "angular v": 0.0,
+            "facing angle": 3.1415109672546387
+        },
+        {
+            "id": 1,
+            "x": 38.0,
+            "y": -13.0,
+            "theta": 0.0,
+            "velocity": 0.0,
+            "angular v": 0.0,
+            "facing angle": 3.141599952316284
+        },
+        {
+            "id": 2,
+            "x": -20.0,
+            "y": 13.0,
+            "theta": 0.0,
+            "velocity": 0.0,
+            "angular v": 0.0,
+            "facing angle": 0.100000047683716
+        },
+        {
+            "id": 3,
+            "x": -15.0,
+            "y": -10.0,
+            "theta": 0.0,
+            "velocity": 0.0,
+            "angular v": 0.0,
+            "facing angle": 0.01111
+        }
+    ],
+    "ball": {
+        "x": 38.0,
+        "y": -13.0,
+        "theta": 0.0,
+        "velocity": 0.0,
+        "who shot": -1,
+        "who holds": 1
+    }
+}

@@ -40,6 +40,7 @@ public:
     MGR_EXPORT madrona::py::Tensor playerAttributesTensor() const;
     MGR_EXPORT madrona::py::Tensor choiceTensor() const;
     MGR_EXPORT madrona::py::Tensor foulCallTensor() const;
+    MGR_EXPORT madrona::py::Tensor resetTensor() const;
 
 private:
     struct Impl;

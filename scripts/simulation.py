@@ -54,7 +54,7 @@ class Simulation(SimulationPolicies):
         self.SCREEN_WIDTH, self.SCREEN_HEIGHT = 940, 500
         self.FEET_TO_PIXELS = 10.0  # 10 pixels per foot
         self.dt = 0.1
-        self.num_players = 10
+        self.num_players = 4
         self.players = []
         self.points = []
         self.frames = []
@@ -329,7 +329,7 @@ class Simulation(SimulationPolicies):
                 screen_y = self.SCREEN_HEIGHT / 2 - agent['y']* self.FEET_TO_PIXELS  # Y axis is opposite
 
                 # Choose image based on agent ID
-                if 0 <= agent['id'] < 5:
+                if 0 <= agent['id'] < self.num_players / 2:
                     agent_image = self.pacman_yellow
                 else:
                     agent_image = self.pacman_blue
