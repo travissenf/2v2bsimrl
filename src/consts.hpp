@@ -40,7 +40,7 @@ constexpr double CENTER_Y = 0.0;
 constexpr double CENTER_Z = 0.0;
 
 constexpr double GRAVITY = 32.1741;
-constexpr double MAX_V_CHANGE = 100000.0;
+constexpr double MAX_V_CHANGE = 50.0;
 
 constexpr int ACTIVE_PLAYERS = 4;
 constexpr int COLLISION_CHECK_STEPS = 4;
@@ -51,6 +51,7 @@ constexpr int NOT_PREVIOUSLY_SHOT = -1;
 constexpr int FIRST_TEAM2_PLAYER = ACTIVE_PLAYERS / 2;
 
 constexpr double D_T = 0.05; //1;
+constexpr double DECAY_FACTOR = 0.025;
 
 constexpr double CATCHING_WINGSPAN = 2.75;
 

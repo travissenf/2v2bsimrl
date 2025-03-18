@@ -14,6 +14,11 @@ import tkinter as tk
 from tkinter import messagebox
 import json
 import random
+import ray
+from ray.rllib.algorithms.ppo import PPOConfig
+from ray.rllib.algorithms.ppo import PPO
+from multi_agent_train import BasketballMultiAgentEnv 
+from ray.rllib.policy.policy import Policy
 
 
 PLAYERS_PER_TEAM = 2
@@ -283,3 +288,88 @@ class SimulationPolicies:
     
     def do_nothing(self, agents_state):
         return {}
+    
+
+    def initialize_PPO(self):
+        
+        offense_policy = Policy.from_checkpoint(r"C:\Users\travi\repos\madrona_simple_example\scripts\checkpoints\evenbettermodels\iter_950\policies\offense")
+        defense_policy = Policy.from_checkpoint(r"C:\Users\travi\repos\madrona_simple_example\scripts\checkpoints\evenbettermodels\iter_950\policies\defense")
+        return offense_policy, defense_policy
+
+    def get_PPO_actions(self, offense_policy, defense_policy):
+        shared_obs = {
+            "player_pos": np.float32(self.grid_world.player_pos[0].numpy()).flatten(),
+            "ball_pos": np.float32(self.grid_world.ball_pos[0].numpy()),
+            "who_holds": int(np.add(self.grid_world.who_holds[0][0].numpy(), [1])[0]),
+            "who_shot": int(np.add(self.grid_world.who_holds[0][1].numpy(), [1])[0]),
+            "who_passed": int(np.add(self.grid_world.who_holds[0][2].numpy(), [1])[0]),
+            "ball_state": int(self.grid_world.who_holds[0].numpy()[3]),
+            "scoreboard": self.grid_world.scoreboard[0].numpy()
+        }
+        
+        one_hot_sizes = {
+            "who_holds": 5,
+            "who_shot": 5,
+            "who_passed": 5,
+            "ball_state": 6
+        }
+
+        final_obs_list = []
+
+        sorted_keys = sorted(shared_obs.keys())
+
+        for key in sorted_keys:
+            value = shared_obs[key]
+            if key in one_hot_sizes:  
+                one_hot_vector = np.eye(one_hot_sizes[key], dtype=np.float32)[value]
+                final_obs_list.append(one_hot_vector)
+            else: 
+                final_obs_list.append(value)
+
+        final_obs = np.concatenate(final_obs_list)
+        offense_action = offense_policy.compute_single_action(obs=final_obs)[0]
+        defense_action = defense_policy.compute_single_action(obs=final_obs)[0]
+
+        off_act1 = np.clip(offense_action["player1"], -1, 1)
+        off_act2 = np.clip(offense_action["player2"], -1, 1)
+
+        def_act1 = np.clip(defense_action["player1"], -1, 1)
+        def_act2 = np.clip(defense_action["player2"], -1, 1)
+
+        off_act1[0] += 1
+        off_act2[0] += 1
+        def_act1[0] += 1
+        def_act2[0] += 1
+
+        off_act1[0] *= 15.0
+        off_act2[0] *= 15.0
+        def_act1[0] *= 15.0
+        def_act2[0] *= 15.0
+
+        off_act1[1] *= np.pi
+        off_act2[1] *= np.pi
+        def_act1[1] *= np.pi
+        def_act2[1] *= np.pi
+
+        off_act1[3] *= np.pi
+        off_act2[3] *= np.pi
+        def_act1[3] *= np.pi
+        def_act2[3] *= np.pi
+
+        off_act1[4] += 1
+        off_act2[4] += 1
+        def_act1[4] += 1
+        def_act2[4] += 1
+
+        off_act1[4] *= 25.0
+        off_act2[4] *= 25.0
+        def_act1[4] *= 25.0
+        def_act2[4] *= 25.0
+
+        self.grid_world.actions[0][0] = torch.tensor(off_act1)
+        self.grid_world.actions[0][1] = torch.tensor(off_act2)
+        self.grid_world.actions[0][2] = torch.tensor(def_act1)
+        self.grid_world.actions[0][3] = torch.tensor(def_act2)
+        self.grid_world.choices[0] = torch.tensor(
+            [offense_action["decision"]] * 2 + [0] * 2
+        ).view(4, 1)

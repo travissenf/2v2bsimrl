@@ -21,7 +21,7 @@ bool ballIsOOB(BallState &ball_state);
 int findClosestInbound(BallState &ball_state);
 
 bool isThreePointer(float x, float y, float hoopx);
-int32_t updateShotBallState(BallState &current_ball, const BallStatus &ball_status);
+int32_t updateShotBallState(Engine &ctx, BallState &current_ball, const BallStatus &ball_status, const CourtPos &player_pos);
 
 float calculateDistance(float x1, float y1, float x2, float y2);
 
@@ -49,7 +49,8 @@ bool catchBallIfClose(Engine &ctx,
                       PlayerID &id, 
                       PlayerStatus &status);
 
-float probabilityOfShot(float distance_from_basket);
+float probabilityOfShot(float distance_from_basket, float hoop_x, float hoop_y, 
+                        const CourtPos &player_pos, float nearest_player_dist);
 
 void makePlayerInboundBall(BallState &ball_state,
                            BallStatus &ball_status,

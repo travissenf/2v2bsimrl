@@ -148,7 +148,8 @@ class BasketballMultiAgentEnv(MultiAgentEnv):
             abs(self.grid_world.ball_pos[0][1].item()) > 25.0 or
             self.grid_world.who_holds[0][0].item() > 1 or
             self.grid_world.foul_call[0].numpy().sum() != 0 or 
-            self.grid_world.scoreboard[0][3].item() >= 24 / 0.05
+            self.grid_world.scoreboard[0][3].item() >= 20 / 0.05 or
+            self.grid_world.ball_pos[0][0] > 0.0
         )
         
         # Create required dictionaries
@@ -184,14 +185,15 @@ class BasketballMultiAgentEnv(MultiAgentEnv):
     
     def _compute_rewards(self):
         """Helper method to compute rewards for all agents"""
-        reward_offense = 0
-        reward_defense = 0
+        reward_offense = 0.0
+        reward_defense = 0.0
         
         if self.grid_world.scoreboard[0][0].item() != 0:
             reward_offense += self.grid_world.scoreboard[0][0].item() * 5
             reward_defense -= self.grid_world.scoreboard[0][0].item() * 5
         
-        if abs(self.grid_world.ball_pos[0][0]) > 47.0 or abs(self.grid_world.ball_pos[0][1]) > 25.0:
+            
+        if abs(self.grid_world.ball_pos[0][0]) > 47.0 or abs(self.grid_world.ball_pos[0][1]) > 25 or self.grid_world.ball_pos[0][0] > 0.0 or self.grid_world.ball_pos[0][1] > 0.0:
             reward_offense -= 3
             reward_defense += 3
         
@@ -207,7 +209,7 @@ class BasketballMultiAgentEnv(MultiAgentEnv):
             reward_defense -= 4
             reward_offense += 4
         
-        if self.grid_world.scoreboard[0][3].item():
+        if self.grid_world.scoreboard[0][3].item() >= 20 / 0.05:
             reward_defense += 3
             reward_offense -= 3
             

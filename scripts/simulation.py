@@ -15,13 +15,16 @@ import tkinter as tk
 from tkinter import messagebox
 from policies import SimulationPolicies
 import json
+import ray
+from ray.rllib.algorithms.ppo import PPO
+from multi_agent_train import BasketballMultiAgentEnv
 
 P_LOC_INDEX_TO_VAL = {0: "x", 1: "y", 2: "theta", 3: "velocity", 4:"angular v", 5: "facing angle"}
 P_LOC_VAL_TO_INDEX = {"x": 0, "y": 1, "theta": 2, "velocity": 3, "angular v": 4, "facing angle": 5}
 
 B_LOC_INDEX_TO_VAL = {0: "x", 1: "y", 2: "theta", 3: "velocity"}
 
-SUPPORTED_POLICIES = {'run_in_line', 'run_and_defend', 'do_nothing'}
+SUPPORTED_POLICIES = {'run_in_line', 'run_and_defend', 'do_nothing', 'PPO'}
 PASSING_VELOCITY = 35.0
 
 class Simulation(SimulationPolicies):
@@ -37,7 +40,9 @@ class Simulation(SimulationPolicies):
         arg_parser.add_argument('--load_state', type=str, default=None, help="Load initial state json file from gamestates folder")
         arg_parser.add_argument('--policy', type=str, default='run_in_line', help="Pick which policy to run")
         arg_parser.add_argument('--debug_mode', action='store_true')
+        arg_parser.add_argument('--model_path', type=str)
         self.args = arg_parser.parse_args()
+        self.deep_model = False
         if (self.args.policy not in SUPPORTED_POLICIES):
             raise Exception("Invalid policy, does not exist")
         elif (self.args.policy == 'run_in_line'):
@@ -49,6 +54,11 @@ class Simulation(SimulationPolicies):
         elif (self.args.policy == 'do_nothing'):
             self.initialize_policy = self.do_nothing_i
             self.run_policy = self.do_nothing
+        elif (self.args.policy == 'PPO'):
+            self.deep_model = True
+            self.initialize_policy = self.initialize_PPO
+            self.run_policy = self.get_PPO_actions
+        
         # Constants
         self.PLAYER_CIRCLE_SIZE = 12
         self.SCREEN_WIDTH, self.SCREEN_HEIGHT = 940, 500
@@ -560,6 +570,9 @@ class Simulation(SimulationPolicies):
         
         self.grid_world.who_holds[self.current_viewed_world][0] = game_state["ball"]["who holds"]
         self.grid_world.who_holds[self.current_viewed_world][1] = game_state["ball"]["who shot"]
+        self.grid_world.scoreboard[0][0] = 0
+        self.grid_world.scoreboard[0][1] = 0
+
 
     def display_action_log(self, screen):
         # Draw a semi-transparent rectangle at the top
@@ -662,7 +675,11 @@ class Simulation(SimulationPolicies):
 
     def run(self):
         # Initialize agent states
-        agents_state = self.initialize_policy()
+        if (self.deep_model):
+            offense_policy, defense_policy = self.initialize_policy()
+        else:
+            agents_state = self.initialize_policy()
+        
         idx = 0
         if (self.args.load_state is not None):
             self.load_from_json("gamestates/" + self.args.load_state)
@@ -810,7 +827,11 @@ class Simulation(SimulationPolicies):
                 prev_ball_in_air = prev_ball_holder==-1
                 prev_score = self.score.copy()
 
-                agents_state = self.run_policy(agents_state)
+                if (self.deep_model):
+                    self.run_policy(offense_policy, defense_policy)
+                else :
+                    agents_state = self.run_policy(agents_state)
+
                 if passing:
                     self.get_velocity_angle_for_ball_pass(self.current_viewed_world, 
                                                           self.grid_world.who_holds[self.current_viewed_world][0], PASSING_VELOCITY)
@@ -828,10 +849,10 @@ class Simulation(SimulationPolicies):
                 self.grid_world.step()
                 self.elapsed_time += 0.1
                 idx += 1
-                if (self.grid_world.scoreboard[0][0] != score1):
-                    print("Team 1 scores %d points" % (score1 - self.grid_world.scoreboard[0][0]))
-                elif (self.grid_world.scoreboard[0][1] != score2):
-                    print("Team 2 scores %d points" % (score2 - self.grid_world.scoreboard[0][1]))
+                if (self.grid_world.scoreboard[0][0].item() != score1):
+                    print("Team 1 scores %d points" % (self.grid_world.scoreboard[0][0] - score1))
+                elif (self.grid_world.scoreboard[0][1].item() != score2):
+                    print("Team 2 scores %d points" % (self.grid_world.scoreboard[0][1] - score2))
                 
 
 
@@ -908,13 +929,6 @@ class Simulation(SimulationPolicies):
                     time.sleep(0.1 - (time.time() - t))
                 
 
-        if self.args.savevideo:
-            frame_data = pygame.surfarray.array3d(self.screen)
-            frame_data = frame_data.transpose((1, 0, 2))
-            standard_size = (940, 500)
-            frame_data_resized = cv2.resize(frame_data, standard_size, interpolation=cv2.INTER_LINEAR)
-            self.frames.append(frame_data_resized)
-
 
         if self.args.savevideo and self.frames:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -924,5 +938,7 @@ class Simulation(SimulationPolicies):
 
 
     def cleanup(self):
+        if self.deep_model:
+            ray.shutdown()
         pygame.quit()
         sys.exit()

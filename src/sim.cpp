@@ -118,6 +118,7 @@ inline void movePlayerStep(Engine &ctx,
 {
     action.vdes = std::min(action.vdes, (float)30.0);
     court_pos = updateCourtPositionStepped(court_pos, action);
+    
 }
 
 
@@ -204,7 +205,7 @@ inline void balltick(Engine &ctx,
     if (ballIsHeld(ball_held)){
         Entity p = players[ball_held.heldBy];
         if (ctx.get<PlayerStatus>(p).justShot){
-            ctx.get<PlayerStatus>(p).pointsOnMake = updateShotBallState(ball_state, ball_held);
+            ctx.get<PlayerStatus>(p).pointsOnMake = updateShotBallState(ctx, ball_state, ball_held, ctx.get<CourtPos>(p));
             ball_held.whoShot = ball_held.heldBy;
             ball_held.heldBy = -1;
         } else {

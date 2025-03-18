@@ -71,10 +71,10 @@ struct StaticPlayerAttributes {
 };
 
 struct Scorecard {
-    int16_t score1;
-    int16_t score2;
-    int16_t quarter;
-    int16_t ticksElapsed;
+    int32_t score1;
+    int32_t score2;
+    int32_t quarter;
+    int32_t ticksElapsed;
 };
 
 struct BallReference {

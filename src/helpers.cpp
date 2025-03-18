@@ -2,6 +2,7 @@
 #include <cstdlib> 
 #include <cmath>
 #include <algorithm>
+#include <stdexcept>
 
 namespace madsimple {
 
@@ -118,20 +119,41 @@ bool isThreePointer(float x, float y, float hoopx){
         || (y < MIN_Y + 3));// bottom corner three
 }
 
-int32_t updateShotBallState(BallState &current_ball, const BallStatus &ball_status){
+int32_t updateShotBallState(Engine &ctx, BallState &current_ball, const BallStatus &ball_status, const CourtPos &player_pos){
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_real_distribution<> dis(25.0, 45.0);
     current_ball.v = (float)dis(gen);
+    auto players = ctx.singleton<AgentList>().e;
 
-    const float HOOP_X = (ball_status.heldBy >= FIRST_TEAM2_PLAYER) ? RIGHT_HOOP_X : LEFT_HOOP_X;
-    const float HOOP_Y = (ball_status.heldBy >= FIRST_TEAM2_PLAYER) ? RIGHT_HOOP_Y : LEFT_HOOP_Y;
+    bool team2 = ball_status.heldBy >= FIRST_TEAM2_PLAYER;
 
-    float prob = probabilityOfShot(euclideanDistance(current_ball.x, current_ball.y, HOOP_X, HOOP_Y)); 
+    const float HOOP_X = (team2) ? RIGHT_HOOP_X : LEFT_HOOP_X;
+    const float HOOP_Y = (team2) ? RIGHT_HOOP_Y : LEFT_HOOP_Y;
+
+    float min_dist = 12.0f;
+    for (int i = 0; i < ACTIVE_PLAYERS; i++){
+        if (i >= FIRST_TEAM2_PLAYER == team2){
+            continue;
+        }
+        Entity p = players[i];
+        float d = euclideanDistance(current_ball.x, current_ball.y, ctx.get<CourtPos>(p).x, ctx.get<CourtPos>(p).y);
+        if (d < min_dist){
+            min_dist = d;
+        }
+    }
+
+    float prob = probabilityOfShot(euclideanDistance(current_ball.x, current_ball.y, HOOP_X, HOOP_Y), 
+                                HOOP_X,
+                                HOOP_Y,
+                                player_pos,
+                                min_dist
+                            ); 
 
     // Generate a random chance for the decision
-    std::uniform_real_distribution<> chance_dis(0.0, 100.0);
-    float random_chance = static_cast<float>(chance_dis(gen));
+
+    dis = std::uniform_real_distribution<> (0.0, 100.0);
+    float random_chance = (float)dis(gen);
 
     
 
@@ -269,14 +291,46 @@ bool ballIsHeld(BallStatus &ball_held) {
 }
 
 // just doing with distance for right now
-float probabilityOfShot(float distance_from_basket) 
+float probabilityOfShot(float distance_from_basket, float hoop_x, float hoop_y, 
+                        const CourtPos &player_pos, float nearest_player_dist) 
 {
-    const float max_probability = 100.0f; // 100% chance at 0 distance
-    const float min_probability = 1.0f;   // 1% chance at very large distances
-    const float decay_factor = -0.07f;     // Controls how fast probability decays
+    const float max_probability = 100.0f;  
+    const float min_probability = 0.0f;
 
-    float probability = max_probability * std::exp(decay_factor * distance_from_basket);
-    return std::min(max_probability, std::max(min_probability, probability));
+    float probability = max_probability * std::max(min_probability, std::min(1.0f, 1.0f - distance_from_basket / 50.0f));
+    
+    if (nearest_player_dist <= 12.0f) {
+        // Linear function to adjust probability
+        
+        float adjustment_factor = 0.2f + (0.8f * (nearest_player_dist / 12.0f));
+        probability *= adjustment_factor;
+    }
+    
+    float v_adj = 0.25f * (player_pos.v / 30.0f);
+    probability *= 1.0f - v_adj;
+
+
+    float abx = -1.0f;
+    float aby = 0.0f;
+    float cbx = player_pos.x - hoop_x;
+    float cby = player_pos.y - hoop_y;
+    float angba = atan2(aby, abx);
+    float angbc = atan2(cby, cbx);
+    float alpha = angba - angbc;
+
+    float deltaTheta = player_pos.facing - alpha;
+
+    while (deltaTheta > PI) {
+        deltaTheta -= 2.0f * PI;
+    }
+    while (deltaTheta < -PI) {
+        deltaTheta += 2.0f * PI;
+    }
+    float facing_adj = abs(deltaTheta / PI);
+
+    probability *= 1.0f - abs(deltaTheta / PI);
+
+    return std::min(max_probability, std::max(min_probability, probability)) * 1.0f;
 }
 
 void makePlayerInboundBall(BallState &ball_state,

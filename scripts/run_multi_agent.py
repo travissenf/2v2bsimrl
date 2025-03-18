@@ -4,6 +4,8 @@ import torch
 from madrona_simple_example import GridWorld
 import ray
 from ray.rllib.algorithms.ppo import PPOConfig
+from ray.rllib.policy.policy import Policy
+from ray.rllib.algorithms import Algorithm
 from ray import tune
 from ray.tune.registry import register_env
 import gymnasium
@@ -11,11 +13,15 @@ from ray.rllib.env.multi_agent_env import MultiAgentEnv
 from ray.rllib.env.wrappers.multi_agent_env_compatibility import MultiAgentEnvCompatibility
 from multi_agent_train import BasketballMultiAgentEnv  # Import from your new file
 import matplotlib.pyplot as plt
+from ray.tune.logger import TBXLoggerCallback
 
 if __name__ == "__main__":
     ray.init()
 
     config = PPOConfig()
+
+    config = config.debugging(log_level="INFO", log_sys_usage=True)
+
     print("ENVIRONMENT")
     config = config.environment(BasketballMultiAgentEnv, env_config={"reset_path": "gamestates/2v2init.json"})
     print("MULTI AGENT")
@@ -23,7 +29,7 @@ if __name__ == "__main__":
             # Define two policies.
             policies={"offense", "defense"},
             policy_mapping_fn=lambda agent_id, episode, **kw: agent_id,
-        )
+        ).training(entropy_coeff=0.002)
     print("TORCH FRAMEWORK")
     config = config.framework("torch")
 
@@ -33,8 +39,13 @@ if __name__ == "__main__":
 
     print('Building Trainer')
     trainer = config.build_algo()
+    trainer.remove_policy("offense")
+    trainer.remove_policy("defense")
+    trainer.add_policy("offense", policy=Policy.from_checkpoint(r"C:\Users\travi\repos\madrona_simple_example\scripts\checkpoints\evenbettermodels\iter_950\policies\offense"))
+    trainer.add_policy("defense", policy=Policy.from_checkpoint(r"C:\Users\travi\repos\madrona_simple_example\scripts\checkpoints\evenbettermodels\iter_950\policies\defense"))
+    # trainer.load_checkpoint(r'C:\Users\travi\repos\madrona_simple_example\scripts\checkpoints\evenbettermodels\iter_650')
     print('Starting Training')
-    for i in range(50):
+    for i in range(651, 10001):
         results = trainer.train()
         print(f"Iteration: {i}")
 
@@ -46,21 +57,20 @@ if __name__ == "__main__":
         print(f"Time for this iteration (s): {results['time_this_iter_s']}")
         print(f"Number of steps trained this iteration: {results['num_steps_trained_this_iter']}")
 
-        # Accessing the policy rewards for offense and defense from env_runners
-        offense_reward = results['env_runners']['policy_reward_mean']['offense']  # Assuming offense is at index 0
-        defense_reward = results['env_runners']['policy_reward_mean']['defense']  # Assuming defense is at index 1
-
+        offense_reward = results['env_runners']['policy_reward_mean']['offense']  
+        defense_reward = results['env_runners']['policy_reward_mean']['defense']  
         print(f"Offense policy reward mean: {offense_reward}")
         print(f"Defense policy reward mean: {defense_reward}")
-        if i % 10 == 0:
-            checkpoint_dir = f'checkpoints/iter_{i}'
+        if i % 50 == 0:
+            checkpoint_dir = f'checkpoints/evenbettermodels/iter_{i}'
             trainer.save(checkpoint_dir)
             print(f"Checkpoint saved at {checkpoint_dir}")
 
-    plt.plot(offense_rewards)
-    plt.title("Offense Reward Over Time")
-    plt.xlabel("Step (Iteration)")
-    plt.ylabel("Offense Reward Mean")
-    plt.savefig("offense_reward_plot_first.png")
+        if (i != 0 and i % 50 == 0):
+            plt.plot(offense_rewards)
+            plt.title("Offense Reward Over Time")
+            plt.xlabel("Step (Iteration)")
+            plt.ylabel("Offense Reward Mean")
+            plt.savefig(f"offense_reward_plot_even_better_iter_{i}.png")
 
     ray.shutdown()

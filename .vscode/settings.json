@@ -103,6 +103,7 @@
         "xutility": "cpp",
         "cuda_std_post": "cpp",
         "coroutine": "cpp",
-        "barrier": "cpp"
+        "barrier": "cpp",
+        "mdspan": "cpp"
     }
 }
