@@ -194,11 +194,9 @@ if __name__ == "__main__":
                 offense_episode_rewards.append(reward_offense + REWARD_SCALE)
                 defense_episode_rewards.append(reward_defense + REWARD_SCALE)
 
-            # Store transition in replay buffer
             defense_agent.replay_buffer.push(state, defense_action, reward_defense, next_state, done)
             offense_agent.replay_buffer.push(state, offense_cont_action, offense_disc_action, reward_offense, next_state, done)
             
-            # Update parameters
             defense_agent.update_parameters()
             offense_agent.update_parameters()
             

@@ -26,7 +26,6 @@ if __name__ == "__main__":
     config = config.environment(BasketballMultiAgentEnv, env_config={"reset_path": "gamestates/2v2init.json"})
     print("MULTI AGENT")
     config = config.multi_agent(
-            # Define two policies.
             policies={"offense", "defense"},
             policy_mapping_fn=lambda agent_id, episode, **kw: agent_id,
         ).training(entropy_coeff=0.002)
