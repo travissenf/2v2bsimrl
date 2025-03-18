@@ -9,46 +9,6 @@ MAX_EPISODES = 1000
 EVAL_INTERVAL = 10
 REWARD_SCALE = 15
 
-def evaluate(env, agent, episodes=10):
-    """Evaluate the agent's performance without exploration."""
-    total_reward = 0
-    
-    for _ in range(episodes):
-        state = env.reset()
-        episode_reward = 0
-        done = False
-        
-        while not done:
-            action = agent.select_action(state, evaluate=True)
-            next_state, reward, done, _ = env.step(action)
-            
-            episode_reward += reward
-            state = next_state
-        
-        total_reward += episode_reward
-    
-    return total_reward / episodes
-
-def evaluate(env, agent, episodes=10):
-    """Evaluate the agent's performance without exploration."""
-    total_reward = 0
-    
-    for _ in range(episodes):
-        state = env.reset()
-        episode_reward = 0
-        done = False
-        
-        while not done:
-            continuous_action, discrete_action = agent.select_action(state, evaluate=True)
-            next_state, reward, done, _ = env.step((continuous_action, discrete_action))
-            
-            episode_reward += reward
-            state = next_state
-        
-        total_reward += episode_reward
-    
-    return total_reward / episodes
-
 
 if __name__ == "__main__":
     points = []
@@ -207,36 +167,29 @@ if __name__ == "__main__":
             reward_offense = 0.0
             reward_defense = 0.0
             if done:
-                print("in here!")
                 if grid_world.scoreboard[0][0].item() != 0:
                     reward_offense += grid_world.scoreboard[0][0].item() * 5
                     reward_defense -= grid_world.scoreboard[0][0].item() * 5
-                    print('score')
                 
                 if abs(grid_world.ball_pos[0][0]) > 47.0 or abs(grid_world.ball_pos[0][1]) > 25 or grid_world.ball_pos[0][0] > 0.0 or grid_world.ball_pos[0][1] > 0.0:
                     reward_offense -= 3
                     reward_defense += 3
-                    print('oob')
                 
                 if grid_world.who_holds[0][0] > 1:
                     reward_defense += 3
                     reward_offense -= 3
-                    print('to')
                 
                 if grid_world.foul_call[0][0].item() != 0 or grid_world.foul_call[0][1].item() != 0:
                     reward_defense += 5
                     reward_offense -= 5
-                    print('of')
 
                 if grid_world.foul_call[0][2].item() != 0 or grid_world.foul_call[0][3].item() != 0:
                     reward_defense -= 4
                     reward_offense += 4
-                    print('df')
                 
                 if grid_world.scoreboard[0][3].item() >= 20 / 0.05:
                     reward_defense += 3
                     reward_offense -= 3
-                    print('sc')
                 
                 offense_episode_rewards.append(reward_offense + REWARD_SCALE)
                 defense_episode_rewards.append(reward_defense + REWARD_SCALE)
@@ -254,21 +207,9 @@ if __name__ == "__main__":
                 break
         
         print(f"Episode {episode}: offense reward = {offense_episode_rewards[-1]}, defense reward = {defense_episode_rewards[-1]}")
-        
-        # if episode % EVAL_INTERVAL == 0:
-        #     defense_eval_reward = evaluate(env, defense_agent, episodes=5)
-        #     print(f"Evaluation at episode {episode}: Average Reward = {defense_eval_reward}")
-        
-        # if episode % EVAL_INTERVAL == 0:
-        #     eval_reward = evaluate(env, offense_agent, episodes=5)
-        #     print(f"Evaluation at episode {episode}: Average Reward = {eval_reward}")
     
     
-    # # Save the trained model
-    # offense_agent.save("offense_agent_model_test.pth")
-    # defense_agent.save("defense_agent_model_test.pth")
+    offense_agent.save("offense_agent_model_test.pth")
+    defense_agent.save("defense_agent_model_test.pth")
 
-    # # Final evaluation
-    # eval_reward = evaluate(env, agent, episodes=10)
-    # print(f"Final evaluation: Average Reward = {eval_reward}")
     
